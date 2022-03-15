@@ -1,10 +1,10 @@
 import logging
 import json
-import uuid
+
 import requests
 import time
 import threading
-import helpers.cfg as cfg 
+
 from datetime import datetime, timedelta
 
 from models import hueBulb 
@@ -12,9 +12,11 @@ from models import hueBulb
 
 class huehelper():
     
-    def __init__(self,deviceIdentifier = None) -> None:
+    def __init__(self,bridge_ip,bridge_user,deviceIdentifier = None) -> None:
         
-        self._config = cfg.getCfgHelper()
+        
+        self.bridge_ip = bridge_ip
+        self.bridge_user = bridge_user
         self.authenticate()
         self.getDevices()
         self.logger = logging.getLogger("HueHelper")
@@ -24,9 +26,9 @@ class huehelper():
 
     def authenticate(self) -> None:
         self.is_ready = False
-        if self._config.bridgeIP is None:
+        if self.bridge_ip is None:
             self._getIP()
-        if self._config.bridgeUser is None:
+        if self.bridge_user is None:
             self._linkButtonLoop()
         self.is_ready = True
         return 
@@ -36,7 +38,7 @@ class huehelper():
         if not self.is_ready:
             return {}
         
-        url = "http://{host}/api/{username}/lights".format(host=self._config.bridgeIP,username=self._config.bridgeUser)
+        url = f"http://{self.bridge_ip}/api/{self.bridge_user}/lights"
         lights = json.loads(requests.get(url=url).content)
         self.devices = {} 
         for lightKey in lights:
@@ -44,8 +46,9 @@ class huehelper():
             newBulb = hueBulb.hueBulb(self,apiObj=lights[lightKey])
             self.devices[newBulb.name] = newBulb
         return self.devices
+
     def getDevice(self,bulbID) -> None:
-        url = "http://{host}/api/{username}/lights/{bulbID}".format(host=self._config.bridgeIP,username=self._config.bridgeUser, bulbID=bulbID)
+        url = f"http://{self.bridge_ip}/api/{self.bridge_user}/lights/{bulbID}"
         response = json.loads(requests.get(url=url).content)
         response["deviceIDonBridge"] = bulbID
         newBulb = hueBulb.hueBulb(self,apiObj=response)
@@ -65,7 +68,7 @@ class huehelper():
             redstate.brightness = bri 
     
         for deviceName in self._config.HueDevicesToFlash:
-            device = self.devices.get(deviceName)
+            device:hueBulb = self.devices.get(deviceName)
             if device is None:
                 pass 
             else:
@@ -134,8 +137,8 @@ class huehelper():
                 else:
                     success = response["success"]
                     if "username" in success:
-                        self._config.bridgeUser = success["username"]
+                        self.bridge_user = success["username"]
                         logging.info("Successfully got a username from the Hue Bridge")
                         isValid = True 
-        self._config.saveHueConfig()
+        
 
