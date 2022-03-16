@@ -151,6 +151,10 @@ class FreshDesk():
 
 
             url = 'https://%s/api/v2/tickets/%s/time_entries' % (self.host,ticketID)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9251d5b9adf5e5c462589e7ef30ed9343ab8f572
             AuthString = "Basic %s" % (self.api_key) 
             r = requests.get (
                 url,
