@@ -3,9 +3,6 @@ import json
 import logging 
 import requests
 import re 
-import helpers.TrelloHelper as TrelloHelper
-import helpers.cfg as cfg
-
 
 
 
