@@ -60,7 +60,7 @@ class FreshDesk():
         return {'Authorization':AuthString,
             'Content-Type':'application/json'}
 
-    def get_worklogs(self,ticketID:str):
+    def fetch_worklogs(self,ticketID:str):
         returnObj = []
         getNextPage = True
         oldResponse = ""
@@ -95,7 +95,7 @@ class FreshDesk():
             lo.debug(worklogs)
         return list(worklogs.values())
 
-    def get_comments(self,ticket:str) -> list:
+    def fetch_comments(self,ticket:str) -> list:
 
         #'https://domain.freshdesk.com/api/v2/tickets/1/conversations?page=2'
         getNextPage = True
@@ -178,6 +178,47 @@ class FreshDesk():
         
         
         return returnObj
+
+    def get_comments(self,ticket):
+        #'https://domain.freshdesk.com/api/v2/tickets/1/conversations?page=2'
+        getNextPage = True
+        oldResponse = ""
+        
+        currentPage = 0
+        messages = [] 
+        while getNextPage == True:
+            currentPage = currentPage + 1
+            url = 'https://%s/api/v2/tickets/%s/conversations?page=%s' % (cfg.FreshdeskURL,ticket,currentPage)
+            AuthString = "Basic %s" % (self.api_key)
+            try:
+                r = requests.get (
+                    url,
+                    headers = {'Authorization':AuthString,
+                    'Content-Type':'application/json'}
+                )
+                conversation = json.loads(r.content)
+                if len(conversation) < 30:
+                    getNextPage = False
+            except Exception as e:
+                return []
+            
+            if r.status_code != 200:
+                print("Unexpected response code [%s], whilst getting ticket list" % r.status_code)
+                print(r.content)
+                return 
+            if r.content == oldResponse:
+                getNextPage = False
+                
+            else :
+                oldResponse = r.content
+                maybeJSON = r.content
+                for message in conversation:
+                    messages.append(message)
+        return messages
+
+
+
+
 
 
 class FreshdeskTicket():
