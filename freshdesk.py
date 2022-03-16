@@ -151,6 +151,19 @@ class FreshDesk():
 
 
             url = 'https://%s/api/v2/tickets/%s/time_entries' % (cfg.FreshdeskURL,ticketID)
+<<<<<<< HEAD
+=======
+            url = 'https://%s/api/v2/tickets/%s/time_entries' % (self.host,ticketID)
+<<<<<<< HEAD
+<<<<<<< HEAD
+>>>>>>> fdd761b... Update freshdesk.py
+=======
+>>>>>>> c572659... merged changes
+=======
+>>>>>>> 56434b82345af16009679b9043d8a29b4711b355
+>>>>>>> ee9951f (Revert "merged changes")
+=======
+>>>>>>> aa5e9fa (Revert "merge resolution")
             AuthString = "Basic %s" % (self.api_key) 
             r = requests.get (
                 url,
