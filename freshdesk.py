@@ -229,7 +229,10 @@ class FreshdeskTicket():
         self.priority = 0
         self.subject = ""
         self.description = ""
-        
+        self.type = ""
+        self.custom_fields = {}
+
+
     def from_dict(self,new_params:dict) -> None:
         self.status = new_params["status"] if "status" in new_params else self.status
         self.id = new_params["id"] if "id" in new_params else self.id
@@ -237,5 +240,7 @@ class FreshdeskTicket():
         self.priority = new_params["priority"] if "priority" in new_params else self.priority
         self.subject = new_params["subject"] if "subject" in new_params else self.subject
         self.description = new_params["description_text"] if "description_text" in new_params else self.description
+        self.type = new_params["type"] if "type" in new_params else self.type
+        self.custom_fields = new_params["custom_fields"] if "custom_fields" in new_params else self.custom_fields
 
         
