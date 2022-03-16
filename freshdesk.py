@@ -150,7 +150,11 @@ class FreshDesk():
             currentPage = currentPage + 1
 
 
+<<<<<<< HEAD
             url = 'https://%s/api/v2/tickets/%s/time_entries' % (cfg.FreshdeskURL,ticketID)
+=======
+            url = 'https://%s/api/v2/tickets/%s/time_entries' % (self.host,ticketID)
+>>>>>>> 56434b82345af16009679b9043d8a29b4711b355
             AuthString = "Basic %s" % (self.api_key) 
             r = requests.get (
                 url,
