@@ -60,7 +60,7 @@ class FreshDesk():
         return {'Authorization':AuthString,
             'Content-Type':'application/json'}
 
-    def get_worklogs(self,ticketID:str):
+    def fetch_worklogs(self,ticketID:str):
         returnObj = []
         getNextPage = True
         oldResponse = ""
@@ -95,7 +95,7 @@ class FreshDesk():
             lo.debug(worklogs)
         return list(worklogs.values())
 
-    def get_comments(self,ticket:str) -> list:
+    def fetch_comments(self,ticket:str) -> list:
 
         #'https://domain.freshdesk.com/api/v2/tickets/1/conversations?page=2'
         getNextPage = True
@@ -138,6 +138,88 @@ class FreshDesk():
         "expects a string in the format %Y-%m-%d"
         return self.search_fd_tickets(f"updated_at:\'{targetdate}\'")
         
+    def get_worklogs(self,ticketID):
+        #/api/v2/tickets/[id]/time_entries
+        #returns all tickets associated with me, or unassigned
+
+        returnObj = []
+        getNextPage = True
+        oldResponse = ""
+        currentPage = 0
+        while getNextPage == True:
+            currentPage = currentPage + 1
+
+
+            url = 'https://%s/api/v2/tickets/%s/time_entries' % (self.host,ticketID)
+            AuthString = "Basic %s" % (self.api_key) 
+            r = requests.get (
+                url,
+                headers = {'Authorization':AuthString,
+                'Content-Type':'application/json'}
+                )
+        
+            if r.status_code != 200:
+                logging.warn("Unexpected response code [%s], whilst getting worklogs for %s" % (r.status_code,ticketID))
+                print(r.content)
+                return 
+
+
+            if r.content == oldResponse:
+                getNextPage = False
+            else :
+                oldResponse = r.content
+
+            
+            response = json.loads(r.content)
+            
+            for worklog in response:
+                returnObj.append(worklog)
+                    
+        
+        
+        return returnObj
+
+    def get_comments(self,ticket):
+        #'https://domain.freshdesk.com/api/v2/tickets/1/conversations?page=2'
+        getNextPage = True
+        oldResponse = ""
+        
+        currentPage = 0
+        messages = [] 
+        while getNextPage == True:
+            currentPage = currentPage + 1
+            url = 'https://%s/api/v2/tickets/%s/conversations?page=%s' % (cfg.FreshdeskURL,ticket,currentPage)
+            AuthString = "Basic %s" % (self.api_key)
+            try:
+                r = requests.get (
+                    url,
+                    headers = {'Authorization':AuthString,
+                    'Content-Type':'application/json'}
+                )
+                conversation = json.loads(r.content)
+                if len(conversation) < 30:
+                    getNextPage = False
+            except Exception as e:
+                return []
+            
+            if r.status_code != 200:
+                print("Unexpected response code [%s], whilst getting ticket list" % r.status_code)
+                print(r.content)
+                return 
+            if r.content == oldResponse:
+                getNextPage = False
+                
+            else :
+                oldResponse = r.content
+                maybeJSON = r.content
+                for message in conversation:
+                    messages.append(message)
+        return messages
+
+
+
+
+
 
 class FreshdeskTicket():
     def __init__(self) -> None:
@@ -147,7 +229,10 @@ class FreshdeskTicket():
         self.priority = 0
         self.subject = ""
         self.description = ""
-        
+        self.type = ""
+        self.custom_fields = {}
+
+
     def from_dict(self,new_params:dict) -> None:
         self.status = new_params["status"] if "status" in new_params else self.status
         self.id = new_params["id"] if "id" in new_params else self.id
@@ -155,5 +240,7 @@ class FreshdeskTicket():
         self.priority = new_params["priority"] if "priority" in new_params else self.priority
         self.subject = new_params["subject"] if "subject" in new_params else self.subject
         self.description = new_params["description_text"] if "description_text" in new_params else self.description
+        self.type = new_params["type"] if "type" in new_params else self.type
+        self.custom_fields = new_params["custom_fields"] if "custom_fields" in new_params else self.custom_fields
 
         
