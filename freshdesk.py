@@ -138,6 +138,47 @@ class FreshDesk():
         "expects a string in the format %Y-%m-%d"
         return self.search_fd_tickets(f"updated_at:\'{targetdate}\'")
         
+    def get_worklogs(self,ticketID):
+        #/api/v2/tickets/[id]/time_entries
+        #returns all tickets associated with me, or unassigned
+
+        returnObj = []
+        getNextPage = True
+        oldResponse = ""
+        currentPage = 0
+        while getNextPage == True:
+            currentPage = currentPage + 1
+
+
+            url = 'https://%s/api/v2/tickets/%s/time_entries' % (cfg.FreshdeskURL,ticketID)
+            AuthString = "Basic %s" % (self.api_key) 
+            r = requests.get (
+                url,
+                headers = {'Authorization':AuthString,
+                'Content-Type':'application/json'}
+                )
+        
+            if r.status_code != 200:
+                logging.warn("Unexpected response code [%s], whilst getting worklogs for %s" % (r.status_code,ticketID))
+                print(r.content)
+                return 
+
+
+            if r.content == oldResponse:
+                getNextPage = False
+            else :
+                oldResponse = r.content
+
+            
+            response = json.loads(r.content)
+            
+            for worklog in response:
+                returnObj.append(worklog)
+                    
+        
+        
+        return returnObj
+
 
 class FreshdeskTicket():
     def __init__(self) -> None:
