@@ -35,19 +35,19 @@ class trello():
                 foundCards.append(card)
         return foundCards
 
-    def search_trello_cards(self,search_criteria) -> list:
+    def search_trello_cards(self,search_criteria,board_id = None) -> list:
         "uses the trello search criteria, can return archived cards"
         url = "https://api.trello.com/1/search"
         params = self._get_trello_params()
         params['card_fields'] = 'desc, name'
         params['modelTypes'] = 'cards'
-    
+        if board_id:
+            params["idBoards"] = board_id
         params["query"] = search_criteria
         r = requests.get(url, params = params)
         matching_summaries = json.loads(r.content)["cards"]
         return matching_summaries
         
-
 
     def purge_trello_cards(self,titlePattern = "", descPattern = "", targetLists = [] 
     , customFieldIDs = []):
