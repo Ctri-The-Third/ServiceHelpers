@@ -6,6 +6,8 @@ import requests
 import json
 import urllib
 
+from soupsieve import match
+
 
 
 lo = logging.getLogger("TrelloHelper")
@@ -32,7 +34,21 @@ class trello():
             if re.search(regex,card["name"]) or re.search(regex,card["desc"]):
                 foundCards.append(card)
         return foundCards
-    
+
+    def search_trello_cards(self,search_criteria,board_id = None) -> list:
+        "uses the trello search criteria, can return archived cards"
+        url = "https://api.trello.com/1/search"
+        params = self._get_trello_params()
+        params['card_fields'] = 'desc, name'
+        params['modelTypes'] = 'cards'
+        if board_id:
+            params["idBoards"] = board_id
+        params["query"] = search_criteria
+        r = requests.get(url, params = params)
+        matching_summaries = json.loads(r.content)["cards"]
+        return matching_summaries
+        
+
     def purge_trello_cards(self,titlePattern = "", descPattern = "", targetLists = [] 
     , customFieldIDs = []):
         """ 
