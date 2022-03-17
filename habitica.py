@@ -1,5 +1,6 @@
 import logging
 import json
+from typing import List
 import requests 
 
 lo = logging.getLogger("HabiticaMapper")
@@ -9,7 +10,7 @@ class Habitica():
             self.user_id = user_id
             self.api_key = api_key
         
-    def fetchHabiticaDailies(self,dateAsString):
+    def fetchHabiticaDailies(self,dateAsString) -> list:
         url =  "https://habitica.com/api/v3/tasks/user?type=dailys&dueDate=%s" % (dateAsString)
         headers = self._getHabiticaHeaders()
 
