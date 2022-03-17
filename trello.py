@@ -153,6 +153,13 @@ class trello():
             return 
         return 
 
+    def fetch_checklist_content(self, checklist_id):
+        url = "https://api.trello.com/1/checklists/%s" % (checklist_id)
+        params = self._get_trello_params()
+        r = requests.get(url=url,params=params)
+        if r.status_code != 200:
+            lo.error("Couldn't fetch checklist content %s" % (r.status_code, r.content))
+
 
     def delete_checklist_item(self,checklist_id, checklist_item_id):
         url = "https://api.trello.com/1/checklists/%s/checkItems/%s" % (checklist_id,checklist_id,checklist_item_id)
