@@ -69,7 +69,7 @@ class trello():
     def fetch_trello_cards(self):
         """returns all visible cards from the board"""    
         url = "https://api.trello.com/1/boards/%s/cards" % (self.board_id)
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         params["filter"] = "visible"
         params["customFieldItems"] = "true"
         
@@ -83,14 +83,14 @@ class trello():
         return cards
     def get_trello_card(self,id):
         url = "https://api.trello.com/1/cards/%s" % (id)
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         r = requests.get(url, params = params)
         card = json.loads(r.content)
         return card 
 
     def create_card(self,title, list_id, description = None, labelID = None,  dueTimestamp = None) :
     
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         params["name"] =title
         
         if description is not None:
@@ -113,7 +113,7 @@ class trello():
 
     def update_card( self, card_id, title, description = None):
         
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         params["name"] = title
         
         if description is not None:
@@ -129,7 +129,7 @@ class trello():
     def create_checklist_on_card(self, cardID, checklistName = "Todo items") -> str:
         "create a checklist on an existing card, returns the ID for use."
         url = "https://api.trello.com/1/checklists"  
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         params["idCard"] = cardID
         params["name"] = checklistName
         
@@ -144,7 +144,7 @@ class trello():
 
     def add_item_to_checklist(self, checklistID, text):
         url = "https://api.trello.com/1/checklists/%s/checkItems" % (checklistID)
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         params["pos"] = "bottom"
         params["name"] = text
         r = requests.post(url,params=params)
@@ -154,10 +154,18 @@ class trello():
         return 
 
 
+    def delete_checklist_item(self,checklist_id, checklist_item_id):
+        url = "https://api.trello.com/1/checklists/%s/checkItems/%s" % (checklist_id,checklist_id,checklist_item_id)
+        params = self._get_trello_params()
+        r = requests.delete(url,params=params)
+        if r.status_code != 200:
+            lo.error("ERROR: %s, Couldn't delete trello checklist item %s " % (r.status_code,checklist_item_id))
+
+
     def _setCustomFieldValue(self, cardID,value, fieldID):
         url = "https://api.trello.com/1/card/%s/customField/%s/item" % (cardID,fieldID)
         data = json.dumps({"value" : {"text" : "%s"% (value)}})
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         headers = {"Content-type": "application/json"}
         r = requests.put(url = url,  data = data,params = params, headers=headers)
         if r.status_code != 200:
@@ -167,7 +175,7 @@ class trello():
 
     def archiveTrelloCard(self,trelloCardID):
         url = "https://api.trello.com/1/card/%s" % (trelloCardID)
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         params["closed"] = True
         r = requests.put(url,params=params)
         if r.status_code != 200:
@@ -178,7 +186,7 @@ class trello():
     def create_custom_field(self,field_name) -> str:
         board_id = self.board_id
         url = "https://api.trello.com/1/customFields/"
-        params = self._getTrelloParams()
+        params = self._get_trello_params()
         data = {
             "idModel":board_id,
             "modelType":"board",
@@ -198,7 +206,7 @@ class trello():
         return ""
         
 
-    def _getTrelloParams(self):
+    def _get_trello_params(self):
         params = {
             'key' : self.key,
             'token' : self.token
@@ -209,7 +217,7 @@ class trello():
     def deleteTrelloCard(self,trelloCardID):
 
         url = "https://api.trello.com/1/card/%s" % (trelloCardID)
-        r = requests.delete(url, params=self._getTrelloParams() )
+        r = requests.delete(url, params=self._get_trello_params() )
         if r.status_code != 200:
             print(r)
             print(r.reason)
