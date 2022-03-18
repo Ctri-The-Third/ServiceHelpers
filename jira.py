@@ -57,6 +57,7 @@ class jiraTicket():
         self.key = new_dict["key"] if "key" in new_dict else self.key
         self.summary = fields["summary"] if "summary" in fields else self.summary
         self.description = fields["description"] if "description" in fields else self.description
+        self.assignee_id = assignee_dict["key"] if "key" in assignee_dict else self.assignee_id
         self.assignee_id = assignee_dict["accountId"] if "accountId" in assignee_dict else self.assignee_id
         self.assignee_name = assignee_dict["displayName"] if "displayName" in assignee_dict else self.assignee_name
         self.priority = priority_dict["name"] if "name" in priority_dict else self.priority
