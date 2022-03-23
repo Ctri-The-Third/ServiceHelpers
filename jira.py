@@ -52,6 +52,7 @@ class jiraTicket():
     def from_dict(self,new_dict:dict):
         fields = new_dict["fields"] if "fields" in new_dict else {}
         assignee_dict = fields["assignee"] if "assignee" in fields else {}
+        assignee_dict = {} if assignee_dict is None else assignee_dict
         priority_dict = fields["priority"] if "priority" in fields else {}
 
         self.key = new_dict["key"] if "key" in new_dict else self.key
