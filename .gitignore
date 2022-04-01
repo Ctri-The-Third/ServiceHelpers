@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 runmetest.py
 .vscode/
+tests/jira_settings.json
