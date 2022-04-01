@@ -7,7 +7,7 @@ from pytest import param
 
 import requests
 
-lo = logging.getLogger("jira")
+LO = logging.getLogger("jira")
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%S.%f%z"
 
 
@@ -31,7 +31,11 @@ class Jira:
         jql = urllib.parse.quote(jql)
 
         url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
-        r = requests.get(url, headers=headers)
+        try:
+            r = requests.get(url, headers=headers)
+        except Exception as ex:
+            LO.error("Request failed for unknown reason %s",ex)
+            
         if r.status_code != 200:
             print(
                 "ERROR: %s could not fetch Jira tickets\n%s"
@@ -152,15 +156,15 @@ class JiraDetails:
         """self checking of the parameters."""
         valid = True
         if self.name == "":
-            lo.warning("jira obj name is blank")
+            LO.warning("jira obj name is blank")
             valid = False
         if self.host == "":
-            lo.warning("jira object host is blank")
+            LO.warning("jira object host is blank")
             valid = False
         if self.default_assignee == "":
-            lo.warning("jira object primary_user_id is blank")
+            LO.warning("jira object primary_user_id is blank")
         if self.key == "":
-            lo.warning("key missing from jira settings")
+            LO.warning("key missing from jira settings")
             valid = False
         
         return valid 

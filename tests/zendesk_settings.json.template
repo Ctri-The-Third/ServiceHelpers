@@ -1,0 +1,25 @@
+{
+    "test_details" : {
+        "host":"tenancy.zendesk.com",
+        "key":"base64string",
+        "default_assignee":123456789
+    },
+    "test_fetch" : {
+        "query_string":"key=CCSD-410"
+        
+    },
+    "test_ticket_content" : {
+        "expected_assignee_id":"xx",
+        "expected_assignee_name":"xx",
+        "expected_created_timestamp":"2022-03-31T11:13:48.326000+0200",
+        "expected_updated_timestamp":"2022-03-31T18:11:14.484000+0200",
+        "expected_description":"xx",
+        "expected_priority": "xx",
+        "expected_key": "CCSD-410",
+        "expected_status": "xx",
+        "expected_summary": "xx"
+    }
+
+
+
+}

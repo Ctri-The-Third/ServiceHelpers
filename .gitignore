@@ -130,3 +130,5 @@ dmypy.json
 runmetest.py
 .vscode/
 tests/jira_settings.json
+tests/zendesk_settings.json
+tests/zendesk_settings.json
