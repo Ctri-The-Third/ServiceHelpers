@@ -117,23 +117,30 @@ def test_ticket_content(caplog:LogCaptureFixture):
         failures += 1
 
     ticket = test_fetch(caplog)
-    assert (isinstance(ticket,JiraTicket))
+    assert isinstance(ticket,JiraTicket)
 
     assert ticket.assignee_id == loaded_details["expected_assignee_id"]
     assert ticket.assignee_name == loaded_details["expected_assignee_name"]
     try:
-        assert ticket.created == datetime.strptime(loaded_details["expected_created_timestamp"],TIMESTAMP_FORMAT)
-    except ValueError as ex:
+        match = ticket.created == datetime.strptime(loaded_details["expected_created_timestamp"],TIMESTAMP_FORMAT)
+    except (ValueError) as ex:
         LO.error("Couldn't parse the created timestamp of the test string - embarassing. %s",ex)
         assert False
     
+    assert match
+    
     try:
-        assert ticket.updated == datetime.strptime(loaded_details["expected_updated_timestamp"],TIMESTAMP_FORMAT)
+        match = ticket.updated == datetime.strptime(loaded_details["expected_updated_timestamp"],TIMESTAMP_FORMAT)
     except ValueError as ex:
         LO.error("Couldn't parse the updated timestamp of the test string - embarassing")
         assert False
+    
+    assert match
 
-    assert ticket.description == loaded_details["expected_description"]
+    if loaded_details["expected_description"] == "":
+        assert ticket.description is None
+    else:
+        assert ticket.description == loaded_details["expected_description"]
     assert ticket.priority == loaded_details["expected_priority"]
     assert ticket.key == loaded_details["expected_key"]
     assert ticket.status == loaded_details["expected_status"]
