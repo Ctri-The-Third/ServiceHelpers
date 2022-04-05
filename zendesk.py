@@ -12,10 +12,13 @@ class zendesk:
     """Represents a single zendesk tenency, and exposes methods for interacting with it via the API."""
 
     def __init__(self, host, api_key):
-
+        
+            
         self.host = host
         self.key = api_key
         self._headers = {"Authorization": f"Basic {self.key}"}
+        if host is None or api_key is None:
+            lo.warning("Zendesk object initialised without necessary parameters!!")
 
     def search_for_tickets(self, search_string):
         """uses the zendesk search notation that's detailed here:
