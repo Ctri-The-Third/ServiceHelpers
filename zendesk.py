@@ -58,7 +58,11 @@ class zendesk:
     def get_user(self, userID: int) -> ZendeskUser:
         """fetches a user from an ID"""
         url = f"https://{self.host}/api/v2/users/{userID}.json"
-        response = requests.get(url, headers=self._headers)
+        try:
+            response = requests.get(url, headers=self._headers)
+        except Exception as ex:
+            lo.error("Something really weird happened hitting url: %s\n %s", url,ex )
+            
 
         if response.status_code != 200:
             lo.warning(
