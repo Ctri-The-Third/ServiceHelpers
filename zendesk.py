@@ -14,7 +14,7 @@ class zendesk:
     def __init__(self, host, api_key):
         
         lo.error(host)
-        lo.error("Key equals ***?" % (api_key == "***"))
+        lo.error("Key equals ***? %s"  , api_key == "***")
             
         self.host = host
         self.key = api_key
