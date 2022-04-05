@@ -12,7 +12,6 @@ from zendesk import zendesk, ZendeskOrganisation, ZendeskTicket, ZendeskUser
 ZENDESK_HOST = os.environ.get("ZENDESK_HOST")
 ZENDESK_KEY = os.environ.get("ZENDESK_KEY")
 
-
 def test_init(caplog) -> zendesk:
     """Tests the initialization of a `zendesk` object using values set in environment variables `zendesk_settings.json` file"""
 

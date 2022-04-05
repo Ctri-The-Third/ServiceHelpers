@@ -1,3 +1,4 @@
+from base64 import encode
 import json
 import logging
 import requests
@@ -11,7 +12,7 @@ lo = logging.getLogger("ZendeskMapper")
 class zendesk:
     """Represents a single zendesk tenency, and exposes methods for interacting with it via the API."""
 
-    def __init__(self, host, api_key):
+    def __init__(self, host:str, api_key):
 
         self.host = host
         self.key = api_key
