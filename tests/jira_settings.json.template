@@ -1,0 +1,26 @@
+{
+    "test_details" : {
+        "host":"",
+        "key":"",
+        "name":"",
+        "default_assignee":""
+    },
+    "test_fetch" : {
+        "jql":"key=ABC-123"
+        
+    },
+    "test_ticket_content" : {
+        "expected_assignee_id":"01234569abcde",
+        "expected_assignee_name":"Joe Blogs",
+        "expected_created_timestamp":"2022-03-31T11:13:48.326000+0200",
+        "expected_updated_timestamp":"2022-03-31T18:11:14.484000+0200",
+        "expected_description":"Hello there!",
+        "expected_priority": "Undefined",
+        "expected_key": "ABC-123",
+        "expected_status": "In Progress",
+        "expected_summary": "Ticket Title"
+    }
+
+
+
+}

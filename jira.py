@@ -1,17 +1,20 @@
-import datetime
+from datetime import datetime
 import json
 import logging
 import urllib.parse
 from time import strptime
+from pytest import param
 
-import pytz
 import requests
 
-lo = logging.getLogger("jira")
+LO = logging.getLogger("jira")
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%S.%f%z"
 
 
 class Jira:
+    """ Represents a single Jira instance, accepting necessary methods to use the API. 
+    Exposes methods for fetching tickets.
+    """
     def __init__(self, config) -> None:
         # config = jiraDetails()
         self.valid = config.valid
@@ -19,7 +22,7 @@ class Jira:
         self.name = config.name
         self.token = config.key
 
-    def fetchJiraTickets(self, jql) -> dict:
+    def fetch_jira_tickets(self, jql) -> dict:
         "takes a JQL string, encodes it, send its to Jira, and returns a dict of tickets, with the ticket ID (PRJ-123) as the dict key"
         headers = {
             "Content-Type": "application/json",
@@ -27,40 +30,44 @@ class Jira:
         }
         jql = urllib.parse.quote(jql)
 
-        url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields=key,summary,description,status,priority,assignee"
-        r = requests.get(url, headers=headers)
+        url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
+        try:
+            r = requests.get(url, headers=headers)
+        except Exception as ex:
+            LO.error("Request failed for unknown reason %s",ex)
+            
         if r.status_code != 200:
             print(
                 "ERROR: %s could not fetch Jira tickets\n%s"
                 % (r.status_code, r.content)
             )
             return []
-        loadedTickets = json.loads(r.content)
-        incomingTickets = {}
-        for ticket in loadedTickets["issues"]:
+        loaded_tickets = json.loads(r.content)
+        incoming_tickets = {}
+        for ticket in loaded_tickets["issues"]:
 
-            new_ticket = jiraTicket()
-            new_ticket.from_dict(ticket)
+            new_ticket = JiraTicket().from_dict(ticket)
+            
 
-            incomingTickets[ticket["key"]] = new_ticket
+            incoming_tickets[ticket["key"]] = new_ticket
             # print(json.dumps(ticket,indent=2))
-        return incomingTickets
+        return incoming_tickets
 
 
-class jiraTicket:
+class JiraTicket:
     "represents a single Jira ticket"
 
     def __init__(
-        self,
-        key="",
-        summary="",
-        assignee_id="",
-        assignee_name="",
-        status="",
-        priority="",
-        description="",
-        created=datetime.datetime.min,
-        updated=datetime.datetime.min,
+            self,
+            key="",
+            summary="",
+            assignee_id="",
+            assignee_name="",
+            status="",
+            priority="",
+            description="",
+            created=datetime.min,
+            updated=datetime.min,
     ) -> None:
         self.key = key
         self.summary = summary
@@ -71,9 +78,10 @@ class jiraTicket:
         self.priority = priority
         self.created = created
         self.updated = updated
-        pass
+
 
     def from_dict(self, new_dict: dict):
+        """Takes the dictionary returned from the API and applies the contents to the matching parameters."""
         fields = new_dict["fields"] if "fields" in new_dict else {}
         assignee_dict = fields["assignee"] if "assignee" in fields else {}
         assignee_dict = {} if assignee_dict is None else assignee_dict
@@ -100,76 +108,63 @@ class jiraTicket:
         self.priority = (
             priority_dict["name"] if "name" in priority_dict else self.priority
         )
-        self.status = new_dict["status"] if "status" in new_dict else self.status
+
+        status_dict = fields["status"] if "status" in fields else {}
+        self.status = status_dict["name"] if "name" in status_dict else self.status
 
         self.created = (
-            strptime(fields["created"], TIMESTAMP_FORMAT)
+            datetime.strptime(fields["created"], TIMESTAMP_FORMAT)
             if "created" in fields
             else self.created
         )
 
         self.updated = (
-            strptime(fields["updated"], TIMESTAMP_FORMAT)
+            datetime.strptime(fields["updated"], TIMESTAMP_FORMAT)
             if "updated" in fields
             else self.updated
         )
-        pass
+
+        return self
 
 
-class jiraDetails:
+class JiraDetails:
     """represents the settings for a jira object"""
 
     def __init__(self) -> None:
-        self.valid = False
         self.host = ""
         self.name = ""
         self.key = ""
-        self.primary_user_id = ""
-        self.issues_jql = ""
-        self.trello_label = ""
-        self.trello_custom_field = ""
+        self.default_assignee = ""
+
         self._lo = logging.getLogger("jiraDetails")
-        pass
 
-    def from_dict(self, dict: dict):
-        self.name = dict["instanceName"] if "instanceName" in dict else ""
-        self.host = dict["instanceHost"] if "instanceHost" in dict else ""
-        self.key = dict["bearerToken"] if "bearerToken" in dict else ""
-        self.primary_user_id = (
-            dict["instanceUserID"] if "instanceUserID" in dict else ""
-        )
-        self.issues_jql = dict["instanceJQL"] if "instanceJQL" in dict else ""
-        self.trello_custom_field = (
-            dict["TrelloCustomFieldIDforJira"]
-            if "TrelloCustomFieldIDforJira" in dict
-            else ""
-        )
-        self.trello_label = (
-            dict["TrelloLabelForJiraCards"] if "TrelloLabelForJiraCards" in dict else ""
-        )
-        self.check_keys()
-        pass
 
-    def check_keys(self):
+    def from_dict(self, src: dict) :
+        """Takes a dictionary and tries to map appropriate details to the class parameters."""
+        self.name = src["instanceName"] if "instanceName" in src else ""
+        self.host = src["instanceHost"] if "instanceHost" in src else ""
+        self.key = src["bearerToken"] if "bearerToken" in src else ""
+        self.default_assignee = (
+            src["instanceUserID"] if "instanceUserID" in src else ""
+        )
+
+
+        return self
+
+    @param
+    def valid(self):
+        """self checking of the parameters."""
         valid = True
         if self.name == "":
-            lo.warning("jira obj name is blank")
+            LO.warning("jira obj name is blank")
             valid = False
         if self.host == "":
-            lo.warning("jira object host is blank")
+            LO.warning("jira object host is blank")
             valid = False
-        if self.primary_user_id == "":
-            lo.warning("jira object primary_user_id is blank")
-            valid = False
-        if self.issues_jql == "":
-            lo.warning("jira object issues_jql is blank")
-            valid = False
-        if self.trello_custom_field == "":
-            lo.warning("jira object trello_custom_field is blank")
-            valid = False
-        if self.trello_label == "":
-            lo.warning("jira object trello_label is blank")
-            valid = False
+        if self.default_assignee == "":
+            LO.warning("jira object primary_user_id is blank")
         if self.key == "":
-            lo.warning("key missing from jira settings")
-        self.valid = valid
+            LO.warning("key missing from jira settings")
+            valid = False
+        
+        return valid 
