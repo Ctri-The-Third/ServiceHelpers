@@ -13,8 +13,8 @@ class zendesk:
 
     def __init__(self, host, api_key):
         
-        lo.info(host)
-        lo.info("Key equals ***?" % (api_key == "***"))
+        lo.error(host)
+        lo.error("Key equals ***?" % (api_key == "***"))
             
         self.host = host
         self.key = api_key
