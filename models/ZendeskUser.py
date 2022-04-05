@@ -16,7 +16,7 @@ class ZendeskUser():
         responseObj = {}
         try:
             responseObj = json.loads(responseStr)["user"]
-        except KeyError:
+        except (KeyError, json.JSONDecodeError):
             lo.warning("failed to parse a user from string")
 
         self.userID = responseObj["id"] if "id" in responseObj else 0

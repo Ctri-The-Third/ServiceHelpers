@@ -73,6 +73,7 @@ def test_user_init(caplog):
     """verifies the error handling of a ZendeskUser object's initialisation"""
     
     test_strs = [
+        "",
         json.dumps({}),
         json.dumps({"user":"not_a_dict"}),
         json.dumps({"user": {"id":"text","name":"text","email":"text","organization_id":"text"}}),
