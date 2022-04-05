@@ -56,7 +56,10 @@ def test_get_user(caplog):
     """Tests the functionality of the `get_user` method"""
 
     zd = test_init(caplog)
+
     user = zd.get_user(417316391)
+    for entry in caplog.records:
+        assert entry.levelno < logging.ERROR
     assert isinstance(user,ZendeskUser)
 
     assert user.name == "test test"

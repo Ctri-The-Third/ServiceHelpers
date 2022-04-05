@@ -35,11 +35,12 @@ class zendesk:
                 response.status_code,
                 response.content,
             )
+            return []
 
         try:
             tickets = json.loads(response.content)["results"]
         except Exception as e:
-            lo.warning(
+            lo.error(
                 "Couldn't parse zendesk tickets as json! %s\n%s,", e, response.content
             )
             return []
@@ -62,7 +63,7 @@ class zendesk:
             response = requests.get(url, headers=self._headers)
         except Exception as ex:
             lo.error("Something really weird happened hitting url: %s\n %s", url,ex )
-            
+            return ZendeskUser("")
 
         if response.status_code != 200:
             lo.warning(
