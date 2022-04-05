@@ -12,10 +12,7 @@ class zendesk:
     """Represents a single zendesk tenency, and exposes methods for interacting with it via the API."""
 
     def __init__(self, host, api_key):
-        
-        lo.error(host)
-        lo.error("Key equals ***? %s"  , api_key == "***")
-            
+
         self.host = host
         self.key = api_key
         self._headers = {"Authorization": f"Basic {self.key}"}

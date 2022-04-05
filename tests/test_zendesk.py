@@ -17,10 +17,13 @@ def test_init(caplog) -> zendesk:
     """Tests the initialization of a `zendesk` object using values set in environment variables `zendesk_settings.json` file"""
 
     zd = zendesk(ZENDESK_HOST,ZENDESK_KEY)
+    logging.warning(ZENDESK_HOST)
+    logging.warning("Key equals ***? %s"  , ZENDESK_KEY == "***")
+                    
 
 
     for record in caplog.records:
-        assert record.levelno < logging.WARNING
+        assert record.levelno < logging.ERROR
     
     return zd
 
