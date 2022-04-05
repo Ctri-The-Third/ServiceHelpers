@@ -2,6 +2,9 @@
 
 name: PyTest
 
+env:
+  ZENDESK_KEY = ${{ secrets.ZENDESK_KEY}}
+  ZENDESK_HOST = ${{ secrets.ZENDESK_KEY}}
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
