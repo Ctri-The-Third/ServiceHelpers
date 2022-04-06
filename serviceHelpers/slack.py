@@ -22,7 +22,7 @@ class slack:
         self.webhook = webhook
 
     def post_to_slack_via_token(
-        self, text, channelID, parent_ts=None, unfurl: bool = True
+        self, text, channelID, parent_ts=None, unfurl: bool = True, attachment=None
     ):
         """Use the `chat.postMessage` api call to send a message to a specified channelID.
 
@@ -35,6 +35,9 @@ class slack:
 
         if parent_ts is not None:
             body["thread_ts"] = parent_ts
+        
+        if attachment is not None:
+            body["attachments"] = attachment
 
         response = requests.post(url, data=json.dumps(body), headers=headers)
         try:
