@@ -196,7 +196,7 @@ class FreshDesk:
         while getNextPage == True:
             currentPage = currentPage + 1
             url = "https://%s/api/v2/tickets/%s/conversations?page=%s" % (
-                cfg.FreshdeskURL,
+                self.host,
                 ticket,
                 currentPage,
             )

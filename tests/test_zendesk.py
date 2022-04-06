@@ -7,7 +7,7 @@ import os
 import json
 import logging
 import pytest
-from zendesk import zendesk, ZendeskOrganisation, ZendeskTicket, ZendeskUser
+from serviceHelpers.zendesk import zendesk,ZendeskOrganisation,ZendeskTicket,ZendeskUser
 
 ZENDESK_HOST = os.environ.get("ZENDESK_HOST")
 ZENDESK_KEY = os.environ.get("ZENDESK_KEY")

@@ -9,7 +9,7 @@ import logging
 
 import pytest
 from pytest import LogCaptureFixture
-from jira import Jira, JiraDetails, JiraTicket, TIMESTAMP_FORMAT
+from serviceHelpers.jira import Jira, JiraDetails, JiraTicket, TIMESTAMP_FORMAT
 
 LO = logging.getLogger("jira_tests")
 
