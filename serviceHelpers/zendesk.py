@@ -1,10 +1,11 @@
-from base64 import encode
 import json
 import logging
 import requests
-from models.ZendeskTicket import ZendeskTicket
-from models.ZendeskOrg import ZendeskOrganisation
-from models.ZendeskUser import ZendeskUser
+
+
+from serviceHelpers.models.ZendeskTicket import ZendeskTicket
+from serviceHelpers.models.ZendeskOrg import ZendeskOrganisation
+from serviceHelpers.models.ZendeskUser import ZendeskUser
 
 lo = logging.getLogger("ZendeskMapper")
 

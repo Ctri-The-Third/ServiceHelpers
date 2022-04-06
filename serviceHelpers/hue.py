@@ -93,7 +93,7 @@ class huehelper():
 
                 device.setNewState(cachedState)
 
-    def _pulseLight(device,endtime,rate,pulseStates,force):
+    def _pulseLight(self,device,endtime,rate,pulseStates,force):
         counter = 0
         while datetime.now() < endtime:
             print("%s-%s\t%s"%(counter,device.name,pulseStates[counter%len(pulseStates)]))
