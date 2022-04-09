@@ -223,8 +223,8 @@ class FreshDesk:
         
         agent_j = self._request_and_validate(url)
         agent_o = FreshdeskAgent()
-        agent_o.from_dict(agent_j)
-        return
+        agent_o.from_dict(agent_j[0])
+        return agent_o
 
     def _request_and_validate(self,url,headers={},body=None) -> dict:
         
