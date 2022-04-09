@@ -4,6 +4,8 @@ import logging
 import math
 import re
 from datetime import datetime
+from typing import Dict
+from urllib.parse import quote_plus
 
 import requests
 
@@ -37,29 +39,23 @@ class FreshDesk:
         current_page = 1
         get_next_page = True
         last_content = {}
-        while get_next_page:
+        while get_next_page and current_page <= 10 :
             url = f'https://{self.host}/api/v2/search/tickets?page={current_page}&query="{query_string}"'
-            r = requests.get(url, headers=self._get_default_headers())
-
-            if r.status_code != 200:
-                _LO.warning(
-                    "Unexpected response code [%s], whilst getting ticket list - reason:\t%s"
-                    ,r.status_code, r.content
-                )
-                return {}
-
-            if r.content != last_content:
-                tickets = json.loads(r.content)
-                if "results" in tickets:
-                    for ticket in tickets["results"]:
+            
+            search_results = self._request_and_validate(url)
+            
+            if search_results != last_content:
+                if "results" in search_results:
+                    for ticket in search_results["results"]:
                         new_ticket = FreshdeskTicket()
                         new_ticket.from_dict(ticket)
                         ticketObj[new_ticket.id] = new_ticket
-                last_content = r.content
+                last_content = search_results
             else:
                 get_next_page = False
-                current_page += 1
-
+                break
+            current_page += 1
+                
         return ticketObj
 
     def _get_default_headers(self) -> dict:
@@ -115,33 +111,14 @@ class FreshDesk:
         comments = []
         while getNextPage == True:
             currentPage = currentPage + 1
-            url = "https://%s/api/v2/tickets/%s/conversations?page=%s" % (
-                self.host,
-                ticket,
-                currentPage,
-            )
+            url = f"https://{self.host}/api/v2/tickets/{ticket}/conversations?page={currentPage}"
 
-            try:
-                r = requests.get(url, headers=self._get_default_headers())
-                conversation = json.loads(r.content)
-                if len(conversation) < 30:
-                    getNextPage = False
-            except Exception as e:
-                _LO.error("unrecoverable error when getting comments, %s", e)
-                return []
-
-            if r.status_code != 200:
-                print(
-                    "Unexpected response code [%s], whilst getting ticket list"
-                    % r.status_code
-                )
-                print(r.content)
-                return
-            if r.content == oldResponse:
+            json = self._request_and_validate(url)
+            if json == oldResponse:
                 getNextPage = False
             else:
-                oldResponse = r.content
-                for message in conversation:
+                oldResponse = json
+                for message in json:
                     comments.append(message)
         if len(comments) > 0:
             logging.debug("[%s]" % countOfMessages)
@@ -162,30 +139,12 @@ class FreshDesk:
         while getNextPage == True:
             currentPage = currentPage + 1
 
-            url = "https://%s/api/v2/tickets/%s/time_entries" % (self.host, ticketID)
-            AuthString = "Basic %s" % (self.api_key)
-            r = requests.get(
-                url,
-                headers={
-                    "Authorization": AuthString,
-                    "Content-Type": "application/json",
-                },
-            )
-
-            if r.status_code != 200:
-                logging.warn(
-                    "Unexpected response code [%s], whilst getting worklogs for %s"
-                    % (r.status_code, ticketID)
-                )
-                print(r.content)
-                return
-
-            if r.content == oldResponse:
+            url = f"https://{self.host}/api/v2/tickets/{ticketID}/time_entries" 
+            
+            response = self._request_and_validate(url)
+            if oldResponse == response:
                 getNextPage = False
-            else:
-                oldResponse = r.content
-
-            response = json.loads(r.content)
+                break
 
             for worklog in response:
                 returnObj.append(worklog)
@@ -239,28 +198,53 @@ class FreshDesk:
         return messages
 
     def search_agent(self, email:str=None, id=None):
-        if id == None:
-            pass 
+        if id is not None and email != None:
+            _LO.error("Pick either email or ID to search by, not both")
+            return None
+        if id is not None:
+            return self._get_agent_by_id(id)
+        if email is not None:
+            return self._get_agent_by_email(email)
 
     def _get_agent_by_id(self, id):
         url = f"https://{self.host}/api/v2/agents/{id}"
-        headers = self._get_default_headers()
+        agent_j = self._request_and_validate(url)
+
+        agent_o = FreshdeskAgent()
+        agent_o.from_dict(agent_j)
+        return agent_o
+
+    def _get_agent_by_email(self, email):
+        if email is None or not isinstance(email,str):
+            _LO.error("invalid parameters passed to _get_agent_by_email")
+            return FreshdeskAgent()
+        email_f = quote_plus(email)
+        url = f"https://{self.host}/api/v2/agents?email={email_f}"
+        
+        agent_j = self._request_and_validate(url)
+        agent_o = FreshdeskAgent()
+        agent_o.from_dict(agent_j)
+        return
+
+    def _request_and_validate(self,url,headers={},body=None) -> dict:
+        
+        if headers == {}:
+            headers = self._get_default_headers()
+        
         try:
-            result = requests.get(url,headers)
+            result = requests.get(url=url,headers=headers,data=body)
         except (ConnectionError) as e:
-            _LO.error("Couldn't connect to FD - %s",e)
-            return None 
+            _LO.error("Couldn't connect to FD %s - %s",url,e)
+            return {} 
         if result.status_code != 200:
             _LO.error("Got an invalid response: %s - %s ",result.status_code, result.content)
-            return None
+            return {}
         try:
-            agent = json.loads(result.content)
+            parsed_content = json.loads(result.content)
         except json.JSONDecodeError as e:
             _LO.error("Couldn't parse JSON from FD - %s",e)
-            return None
-
-        
-        print(agent)
+            return {}
+        return parsed_content
 
 class FreshdeskTicket:
     def __init__(self) -> None:
@@ -324,4 +308,9 @@ class FreshdeskAgent():
         self.email = ""
         
     def from_dict(self, api_result:dict) -> None:
-        return 
+        self.id = api_result.get("id",0)
+        contact = api_result.get("contact",{})
+        self.name = contact.get("name","")
+        self.email = contact.get("email","")
+         
+
