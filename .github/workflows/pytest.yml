@@ -5,6 +5,8 @@ name: PyTest
 env:
   ZENDESK_KEY: ${{ secrets.ZENDESK_KEY}}
   ZENDESK_HOST: ${{ secrets.ZENDESK_HOST}}
+  FRESHDESK_KEY: ${{ secrets.FRESHDESK_KEY}}
+  FRESHDESK_HOST: ${{ secrets.FRESHDESk_HOST}}
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch

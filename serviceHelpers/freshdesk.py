@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import math
@@ -13,18 +14,23 @@ import requests
 # turn unaffilliated tickets into cards.
 
 
-lo = logging.getLogger("freshdesk")
+_LO = logging.getLogger("freshdesk")
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%SZ"
 
 
 class FreshDesk:
-    def __init__(self, host, api_key) -> None:
+    def __init__(self, host, api_key:str ) -> None:
+        "Note, api_key should not be base-64 encoded already"
         self.host = host
-        self.api_key = api_key
-        pass
+        
+        key_as_bytes = api_key.encode('utf-8')
+        encoded_bytes = base64.b64encode(key_as_bytes)
+        self.api_key = encoded_bytes.decode('utf-8')
 
     def search_fd_tickets(self, query_string):
-        "now paginated!"
+        """now paginated! See the search definition here: 
+        
+        https://developers.freshdesk.com/api/#ticket_attributes"""
 
         # sample query string = ((agent_id:%s OR agent_id:null) AND (status:2 OR status:3))
         ticketObj = {}
@@ -36,9 +42,9 @@ class FreshDesk:
             r = requests.get(url, headers=self._get_default_headers())
 
             if r.status_code != 200:
-                lo.warning(
+                _LO.warning(
                     "Unexpected response code [%s], whilst getting ticket list - reason:\t%s"
-                    % (r.status_code, r.content)
+                    ,r.status_code, r.content
                 )
                 return {}
 
@@ -74,7 +80,7 @@ class FreshDesk:
             r = requests.get(url, headers=self._get_default_headers())
 
             if r.status_code != 200:
-                lo.warn(
+                _LO.warn(
                     "Unexpected response code [%s], whilst getting worklogs for %s"
                     % (r.status_code, ticketID)
                 )
@@ -88,7 +94,7 @@ class FreshDesk:
             try:
                 response = json.loads(r.content)
             except Exception as e:
-                lo.error("Couldn't parse json of worklogs")
+                _LO.error("Couldn't parse json of worklogs")
                 response = []
 
             for worklog in response:
@@ -96,7 +102,7 @@ class FreshDesk:
                     worklogs[worklog["id"]] = worklog
 
         if len(returnObj) > 0:
-            lo.debug(worklogs)
+            _LO.debug(worklogs)
         return list(worklogs.values())
 
     def fetch_comments(self, ticket: str) -> list:
@@ -121,7 +127,7 @@ class FreshDesk:
                 if len(conversation) < 30:
                     getNextPage = False
             except Exception as e:
-                lo.error("unrecoverable error when getting comments, %s", e)
+                _LO.error("unrecoverable error when getting comments, %s", e)
                 return []
 
             if r.status_code != 200:
@@ -232,6 +238,29 @@ class FreshDesk:
                     messages.append(message)
         return messages
 
+    def search_agent(self, email:str=None, id=None):
+        if id == None:
+            pass 
+
+    def _get_agent_by_id(self, id):
+        url = f"https://{self.host}/api/v2/agents/{id}"
+        headers = self._get_default_headers()
+        try:
+            result = requests.get(url,headers)
+        except (ConnectionError) as e:
+            _LO.error("Couldn't connect to FD - %s",e)
+            return None 
+        if result.status_code != 200:
+            _LO.error("Got an invalid response: %s - %s ",result.status_code, result.content)
+            return None
+        try:
+            agent = json.loads(result.content)
+        except json.JSONDecodeError as e:
+            _LO.error("Couldn't parse JSON from FD - %s",e)
+            return None
+
+        
+        print(agent)
 
 class FreshdeskTicket:
     def __init__(self) -> None:
@@ -286,3 +315,13 @@ class FreshdeskTicket:
         self.response_group = (
             new_params["group_id"] if "group_id" in new_params else self.response_group
         )
+
+
+class FreshdeskAgent():
+    def __init__(self) -> None:
+        self.id = 0
+        self.name = ""
+        self.email = ""
+        
+    def from_dict(self, api_result:dict) -> None:
+        return 
