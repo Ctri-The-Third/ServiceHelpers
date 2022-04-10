@@ -26,7 +26,9 @@ class zendesk:
         https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/
         """
         # gets the most recently 100 Zendesk tickets.
-        url = f"https://{self.host}/api/v2/search.json?query={search_string}"
+        url = (
+            f"https://{self.host}/api/v2/search.json?query=type:ticket {search_string}"
+        )
 
         pages = self._request_and_validate_paginated(url)
         tickets = {}
@@ -36,6 +38,19 @@ class zendesk:
                 ticket_o.from_dict(ticket_j)
                 tickets[ticket_o.id] = ticket_o
         return tickets
+
+    def search_for_users(self, search_string):
+        """Uses the zendesk search notation that's detailed here:
+        https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/"""
+
+        url = f"https://{self.host}/api/v2/search.json?query=type:user {search_string}"
+        pages = self._request_and_validate_paginated(url)
+        users = {}
+        for page in pages:
+            for user_j in page.get("results", []):
+                user_o = ZendeskUser(user_j)
+                users[user_o.user_id] = user_o
+        return users
 
     def get_user(self, userID: int) -> ZendeskUser:
         """fetches a user from an ID"""

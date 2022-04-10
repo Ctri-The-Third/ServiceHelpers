@@ -10,7 +10,6 @@ import pytest
 from serviceHelpers.zendesk import (
     zendesk,
     ZendeskOrganisation,
-    ZendeskTicket,
     ZendeskUser,
 )
 
@@ -81,8 +80,19 @@ def test_get_user(caplog):
 
     assert user.name == "test test"
     assert user.email == "test@test.com"
-    assert user.userID == 417316391
+    assert user.user_id == 417316391
     assert user.organisationID is None
+
+
+def test_search_user(caplog):
+    "check for users"
+    zd = test_init(caplog)
+    users = zd.search_for_users("type:user email:test@test.com")
+
+    assert len(users) > 0
+    for user_key in users:
+
+        assert isinstance(users[user_key], ZendeskUser)
 
 
 def test_user_init(caplog):
@@ -121,7 +131,7 @@ def test_search_for_tickets(caplog):
     search_str = "requester:ctri.goudie@unity3d.com"
 
     tickets = zend.search_for_tickets(search_string=search_str)
-    assert len(tickets)> 0
+    assert len(tickets) > 0
 
     for entry in caplog.records:
         assert entry.levelno < logging.ERROR

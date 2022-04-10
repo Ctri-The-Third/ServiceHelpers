@@ -27,8 +27,8 @@ class ZendeskUser:
             lo.error("Incorrect data type for responseStr")
             return
 
-        self.userID = responseObj["id"] if "id" in responseObj else 0
-        self.userID = self.userID if isinstance(self.userID, int) else 0
+        self.user_id = responseObj["id"] if "id" in responseObj else 0
+        self.user_id = self.user_id if isinstance(self.user_id, int) else 0
 
         self.name = responseObj["name"] if "name" in responseObj else ""
         self.name = self.name if isinstance(self.name, str) else ""
