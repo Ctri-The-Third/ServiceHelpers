@@ -7,103 +7,82 @@ from serviceHelpers.models.ZendeskTicket import ZendeskTicket
 from serviceHelpers.models.ZendeskOrg import ZendeskOrganisation
 from serviceHelpers.models.ZendeskUser import ZendeskUser
 
-lo = logging.getLogger("ZendeskMapper")
+_LO = logging.getLogger("ZendeskMapper")
 
 
 class zendesk:
     """Represents a single zendesk tenency, and exposes methods for interacting with it via the API."""
 
-    def __init__(self, host:str, api_key):
+    def __init__(self, host: str, api_key):
 
         self.host = host
         self.key = api_key
         self._headers = {"Authorization": f"Basic {self.key}"}
         if host is None or api_key is None:
-            lo.warning("Zendesk object initialised without necessary parameters!!")
+            _LO.warning("Zendesk object initialised without necessary parameters!!")
 
     def search_for_tickets(self, search_string):
         """uses the zendesk search notation that's detailed here:
         https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/
         """
         # gets the most recently 100 Zendesk tickets.
-        url = str.format(
-            "https://{0}/api/v2/search.json?query={1}", self.host, search_string
-        )
-        response = requests.get(url, headers=self._headers)
-        if response.status_code != 200:
-            lo.warning(
-                "couldn't retrieve zendesk tickets [%s]\n%s",
-                response.status_code,
-                response.content,
-            )
-            return []
+        url = f"https://{self.host}/api/v2/search.json?query={search_string}"
 
-        try:
-            tickets = json.loads(response.content)["results"]
-        except Exception as e:
-            lo.error(
-                "Couldn't parse zendesk tickets as json! %s\n%s,", e, response.content
-            )
-            return []
-        return self._parse_tickets(tickets)
-
-    def _parse_tickets(self, tickets: list):
-        """expecting a list of ticket dicts"""
-        responseObj = {}
-        for ticket in tickets:  # tickets are now indexed by ID
-
-            new_ticket = ZendeskTicket(self.host).from_dict(ticket)
-            if new_ticket.id != 0:
-                responseObj[f"{new_ticket.id}"] = new_ticket
-        return responseObj
+        pages = self._request_and_validate_paginated(url)
+        tickets = {}
+        for page in pages:
+            for ticket_j in page.get("results", []):
+                ticket_o = ZendeskTicket(self.host)
+                ticket_o.from_dict(ticket_j)
+                tickets[ticket_o.id] = ticket_o
+        return tickets
 
     def get_user(self, userID: int) -> ZendeskUser:
         """fetches a user from an ID"""
         url = f"https://{self.host}/api/v2/users/{userID}.json"
-        try:
-            response = requests.get(url, headers=self._headers)
-        except Exception as ex:
-            lo.error("Something really weird happened hitting url: %s\n %s", url,ex )
-            return ZendeskUser("")
+        response = self._request_and_validate(url)
 
-        if response.status_code != 200:
-            lo.warning(
-                "couldn't retrieve zendesk user %s [%s]\n%s",
-                userID,
-                response.status_code,
-                response.content,
-            )
-
-        return ZendeskUser(response.content)
-
+        return ZendeskUser(response.get("user", {}))
 
     def _request_and_validate(self, url, headers=None, body=None) -> dict:
-        pass 
-    def get_organisation(self, orgID: int) -> ZendeskOrganisation:
-        """Fetches an organisation from an ID. Not yet implemented."""
-        raise NotImplementedError
-        # TODO - finish the below
-        url = str.format(
-            f"https://{self.host}/api/v2/users/{orgID}.json".format(self.host, orgID)
-        )
-        response = requests.get(url, headers=self._headers)
-        responseObj = {}
-        if response.status_code != 200:
-            logging.warning(
-                "couldn't retrieve zendesk organisation %s [%s]\n%s",
-                orgID,
-                response.status_code,
-                response.content,
-            )
+        "internal method to request and return"
+        if headers is None:
+            headers = self._headers
 
         try:
-            responseObj = json.loads(response.content)
-        except Exception as e:
-            lo.warning(
-                "Couldn't parse org info as json! %s, %s\n%s",
-                orgID,
-                e,
-                response.content,
+            result = requests.get(url=url, headers=headers, data=body)
+        except (ConnectionError) as e:
+            _LO.error("Couldn't connect to Zendesk %s - %s", url, e)
+            return {}
+        if result.status_code != 200:
+            _LO.error(
+                "Got an invalid response: %s - %s ", result.status_code, result.content
             )
+            return {}
+        try:
+            parsed_content = json.loads(result.content)
+        except json.JSONDecodeError as e:
+            _LO.error("Couldn't parse JSON from Zendesk - %s", e)
+            return {}
+        return parsed_content
 
-        return ZendeskOrganisation(responseObj)
+    def _request_and_validate_paginated(self, url, headers=None, body=None) -> list:
+
+        param_char = "&" if "?" in url else "?"
+        next_page = 1
+        pages = []
+        while next_page is not None:
+            r_url = f"{url}{param_char}page={next_page}"
+            resp = self._request_and_validate(r_url, headers, body)
+            pages.append(resp)
+            next_page = resp.get("nextPage", None)
+        return pages
+
+    def get_organisation(self, orgID: int) -> ZendeskOrganisation:
+        """Fetches an organisation from an ID. Not yet implemented."""
+
+        url = f"https://{self.host}/api/v2/users/{orgID}.json".format(self.host, orgID)
+        org_j = self._request_and_validate(url)
+        org_o = ZendeskOrganisation(org_j)
+
+        return org_o

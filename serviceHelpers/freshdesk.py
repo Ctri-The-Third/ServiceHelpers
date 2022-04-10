@@ -1,4 +1,3 @@
-from ast import List
 import base64
 import json
 import logging
@@ -154,7 +153,7 @@ class FreshDesk:
             return {}
         return parsed_content
 
-    def _request_and_validate_paginated(self, url, headers=None, body=None) -> List:
+    def _request_and_validate_paginated(self, url, headers=None, body=None) -> list:
         getNextPage = True
         oldResponse = ""
         param_char = "&" if "?" in url else "?"
