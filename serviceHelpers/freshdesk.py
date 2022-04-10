@@ -26,23 +26,23 @@ class FreshDesk:
         encoded_bytes = base64.b64encode(key_as_bytes)
         self.api_key = encoded_bytes.decode("utf-8")
 
-    def search_fd_tickets(self, query_string):
+    def search_fd_tickets(self, query_string) -> dict:
         """now paginated! See the search definition here:
 
         https://developers.freshdesk.com/api/#ticket_attributes"""
 
         url = f'https://{self.host}/api/v2/search/tickets?query="{query_string}"'
 
-        ticket_list = []
+        ticket_dict = {}
         pages = self._request_and_validate_paginated(url)
         for page in pages:
             for ticket_j in page.get("results", []):
                 page: dict
                 ticket_o = FreshdeskTicket()
                 ticket_o.from_dict(ticket_j)
-                ticket_list.append(ticket_o)
+                ticket_dict[ticket_o.id] = ticket_o
 
-        return ticket_list
+        return ticket_dict
 
     def _get_default_headers(self) -> dict:
         "headers with auth token for requests"
