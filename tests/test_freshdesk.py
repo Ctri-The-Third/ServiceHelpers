@@ -13,13 +13,6 @@ TARGET_EMAIL = os.environ.get("TEST_EMAIL")
 TARGET_ID = 11019533812
 
 
-def test_environment_vars():
-    "check the environment variables are set"
-    assert FRESHDESK_HOST is not None
-    assert FRESHDESK_KEY is not None
-    assert TARGET_EMAIL is not None
-
-
 def test_env_host():
     "check the host environment variable is set"
     assert FRESHDESK_HOST is not None
