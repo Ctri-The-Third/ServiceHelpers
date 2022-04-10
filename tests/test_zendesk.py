@@ -15,6 +15,7 @@ from serviceHelpers.zendesk import (
 
 ZENDESK_HOST = os.environ.get("ZENDESK_HOST")
 ZENDESK_KEY = os.environ.get("ZENDESK_KEY")
+TARGET_EMAIL = os.environ.get("TEST_EMAIL")
 
 
 def test_init(caplog) -> zendesk:
