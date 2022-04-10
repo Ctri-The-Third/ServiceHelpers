@@ -7,7 +7,7 @@ env:
   ZENDESK_HOST: ${{ secrets.ZENDESK_HOST}}
   FRESHDESK_KEY: ${{ secrets.FRESHDESK_KEY}}
   FRESHDESK_HOST: ${{ secrets.FRESHDESK_HOST}}
-  TARGET_EMAIL: ${{ secrets.TEST_EMAIL}}
+  TEST_EMAIL: ${{ secrets.TEST_EMAIL}}
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
