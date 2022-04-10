@@ -2,9 +2,7 @@ import sys
 sys.path.append("")
 
 import os 
-import json
 import logging
-import pytest
 from serviceHelpers.freshdesk import FreshDesk, FreshdeskTicket 
 
 
@@ -13,10 +11,15 @@ FRESHDESK_KEY = os.environ.get("FRESHDESK_KEY")
 TARGET_EMAIL = os.environ.get("TEST_EMAIL")
 TARGET_ID = 11019533812
 
-def test_init():
-    "check the classes can start up"
+def test_environment_vars():
+    "check the environment variables are set"
     assert FRESHDESK_HOST is not None
     assert FRESHDESK_KEY is not None
+    assert TARGET_EMAIL is not None 
+
+def test_init():
+    "check the classes can start up"
+
     FreshDesk(FRESHDESK_HOST,FRESHDESK_KEY)
     FreshdeskTicket()
 
@@ -31,14 +34,23 @@ def test_search(caplog):
     for record in caplog.records:
         assert record.levelno < logging.WARNING
 
-def test_fetch_comments():
+def test_fetch_comments(caplog):
     "retrieve comments for a specific ID"
     fresh = FreshDesk(FRESHDESK_HOST,FRESHDESK_KEY)
     comments = fresh.get_comments(24535)
 
     assert len(comments) > 0
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
 
+def test_fetch_worklogs(caplog):
+    "retrieve worklogs for a specific ID"
+    fresh = FreshDesk(FRESHDESK_HOST, FRESHDESK_KEY)
+    worklogs = fresh.get_worklogs(24535)
 
+    assert len(worklogs) > 0
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
 
 def test_user_id(caplog):
     "fetch a user by ID, see how it performs"
@@ -48,6 +60,9 @@ def test_user_id(caplog):
     assert isinstance(agent.email,str) and agent.email != ""
     assert isinstance(agent.name, str) and agent.name != ""
 
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
+
 def test_user_email(caplog):
     "fetch a user by email, see how it performs"
     fresh = FreshDesk(FRESHDESK_HOST,FRESHDESK_KEY)
@@ -55,5 +70,8 @@ def test_user_email(caplog):
     assert isinstance(agent.id,int) and agent.id > 0
     assert isinstance(agent.email,str) and agent.email != ""
     assert isinstance(agent.name, str) and agent.name != ""
+
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
 
     

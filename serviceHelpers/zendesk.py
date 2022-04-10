@@ -76,6 +76,9 @@ class zendesk:
 
         return ZendeskUser(response.content)
 
+
+    def _request_and_validate(self, url, headers=None, body=None) -> dict:
+        pass 
     def get_organisation(self, orgID: int) -> ZendeskOrganisation:
         """Fetches an organisation from an ID. Not yet implemented."""
         raise NotImplementedError

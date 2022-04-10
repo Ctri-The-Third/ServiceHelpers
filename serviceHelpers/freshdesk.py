@@ -1,12 +1,9 @@
+from ast import List
 import base64
 import json
 import logging
-import math
-import re
 from datetime import datetime
-from typing import Dict
 from urllib.parse import quote_plus
-
 import requests
 
 # get all open FD tickets
@@ -21,193 +18,101 @@ TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%SZ"
 
 
 class FreshDesk:
-    def __init__(self, host, api_key:str ) -> None:
+    "Represents a single freshdesk tenancy"
+
+    def __init__(self, host, api_key: str) -> None:
         "Note, api_key should not be base-64 encoded already"
         self.host = host
-        
-        key_as_bytes = api_key.encode('utf-8')
+        key_as_bytes = api_key.encode("utf-8")
         encoded_bytes = base64.b64encode(key_as_bytes)
-        self.api_key = encoded_bytes.decode('utf-8')
+        self.api_key = encoded_bytes.decode("utf-8")
 
     def search_fd_tickets(self, query_string):
-        """now paginated! See the search definition here: 
-        
+        """now paginated! See the search definition here:
+
         https://developers.freshdesk.com/api/#ticket_attributes"""
 
-        # sample query string = ((agent_id:%s OR agent_id:null) AND (status:2 OR status:3))
-        ticketObj = {}
-        current_page = 1
-        get_next_page = True
-        last_content = {}
-        while get_next_page and current_page <= 10 :
-            url = f'https://{self.host}/api/v2/search/tickets?page={current_page}&query="{query_string}"'
-            
-            search_results = self._request_and_validate(url)
-            
-            if search_results != last_content:
-                if "results" in search_results:
-                    for ticket in search_results["results"]:
-                        new_ticket = FreshdeskTicket()
-                        new_ticket.from_dict(ticket)
-                        ticketObj[new_ticket.id] = new_ticket
-                last_content = search_results
-            else:
-                get_next_page = False
-                break
-            current_page += 1
-                
-        return ticketObj
+        url = f'https://{self.host}/api/v2/search/tickets?query="{query_string}"'
+
+        ticket_list = []
+        pages = self._request_and_validate_paginated(url)
+        for page in pages:
+            for ticket_j in page.get("results", []):
+                page: dict
+                ticket_o = FreshdeskTicket()
+                ticket_o.from_dict(ticket_j)
+                ticket_list.append(ticket_o)
+
+        return ticket_list
 
     def _get_default_headers(self) -> dict:
         "headers with auth token for requests"
         AuthString = "Basic %s" % (self.api_key)
         return {"Authorization": AuthString, "Content-Type": "application/json"}
 
-    def fetch_worklogs(self, ticketID: str):
-        returnObj = []
-        getNextPage = True
-        oldResponse = ""
-        currentPage = 0
+    def fetch_worklogs(self, ticket_id: str):
+        "Returns the worklogs for a given ticket"
 
-        worklogs = {}
-        while getNextPage == True:
-            currentPage = currentPage + 1
-            url = "https://%s/api/v2/tickets/%s/time_entries" % (self.host, ticketID)
-            r = requests.get(url, headers=self._get_default_headers())
+        url = f"https://{self.host}/api/v2/tickets/{ticket_id}/time_entries"
+        pages = self._request_and_validate_paginated(url)
 
-            if r.status_code != 200:
-                _LO.warn(
-                    "Unexpected response code [%s], whilst getting worklogs for %s"
-                    % (r.status_code, ticketID)
-                )
-                print(r.content)
-                return
-            if r.content == oldResponse:
-                getNextPage = False
-            else:
-                oldResponse = r.content
-
-            try:
-                response = json.loads(r.content)
-            except Exception as e:
-                _LO.error("Couldn't parse json of worklogs")
-                response = []
-
-            for worklog in response:
-                if "id" in worklog:
-                    worklogs[worklog["id"]] = worklog
-
-        if len(returnObj) > 0:
-            _LO.debug(worklogs)
-        return list(worklogs.values())
+        worklogs = []
+        for page in pages:
+            for worklog in page:
+                worklogs.append(worklog)
+        return worklogs
 
     def fetch_comments(self, ticket: str) -> list:
+        "Returns the comments for a given ticket"
+        url = f"https://{self.host}/api/v2/tickets/{ticket}/conversations?"
+        pages = self._request_and_validate_paginated(url)
 
-        #'https://domain.freshdesk.com/api/v2/tickets/1/conversations?page=2'
-        getNextPage = True
-        oldResponse = ""
-        countOfMessages = 0
-        currentPage = 0
         comments = []
-        while getNextPage == True:
-            currentPage = currentPage + 1
-            url = f"https://{self.host}/api/v2/tickets/{ticket}/conversations?page={currentPage}"
-
-            json = self._request_and_validate(url)
-            if json == oldResponse:
-                getNextPage = False
-            else:
-                oldResponse = json
-                for message in json:
-                    comments.append(message)
-        if len(comments) > 0:
-            logging.debug("[%s]" % countOfMessages)
+        for page in pages:
+            for comment in page:
+                comments.append(comment)
         return comments
 
     def get_fd_tickets_updated_on(self, targetdate: str):
         "expects a string in the format %Y-%m-%d"
         return self.search_fd_tickets(f"updated_at:'{targetdate}'")
 
-    def get_worklogs(self, ticketID):
-        # /api/v2/tickets/[id]/time_entries
-        # returns all tickets associated with me, or unassigned
+    def get_worklogs(self, ticketID) -> list:
+        "returns a list of dictionaries of parsed JSON representing worklogs representing a ticketID"
 
-        returnObj = []
-        getNextPage = True
-        oldResponse = ""
-        currentPage = 0
-        while getNextPage == True:
-            currentPage = currentPage + 1
+        url = f"https://{self.host}/api/v2/tickets/{ticketID}/time_entries"
+        pages = self._request_and_validate_paginated(url)
+        worklogs = []
+        for page in pages:
+            for worklog in page:
+                worklogs.append(worklog)
+        return worklogs
 
-            url = f"https://{self.host}/api/v2/tickets/{ticketID}/time_entries" 
-            
-            response = self._request_and_validate(url)
-            if oldResponse == response:
-                getNextPage = False
-                break
-
-            for worklog in response:
-                returnObj.append(worklog)
-
-        return returnObj
-
-    def get_comments(self, ticket):
+    def get_comments(self, ticket_id):
+        "retrieve the comments on a ticket. Can be an int or a str"
         #'https://domain.freshdesk.com/api/v2/tickets/1/conversations?page=2'
-        getNextPage = True
-        oldResponse = ""
+        url = url = f"https://{self.host}/api/v2/tickets/{ticket_id}/conversations"
+        pages = self._request_and_validate_paginated(url)
 
-        currentPage = 0
-        messages = []
-        while getNextPage == True:
-            currentPage = currentPage + 1
-            url = "https://%s/api/v2/tickets/%s/conversations?page=%s" % (
-                self.host,
-                ticket,
-                currentPage,
-            )
-            AuthString = "Basic %s" % (self.api_key)
-            try:
-                r = requests.get(
-                    url,
-                    headers={
-                        "Authorization": AuthString,
-                        "Content-Type": "application/json",
-                    },
-                )
-                conversation = json.loads(r.content)
-                if len(conversation) < 30:
-                    getNextPage = False
-            except Exception as e:
-                return []
+        comments = []
+        for page in pages:
+            for comment in page:
+                comments.append(comment)
+        return comments
 
-            if r.status_code != 200:
-                print(
-                    "Unexpected response code [%s], whilst getting ticket list"
-                    % r.status_code
-                )
-                print(r.content)
-                return
-            if r.content == oldResponse:
-                getNextPage = False
-
-            else:
-                oldResponse = r.content
-                maybeJSON = r.content
-                for message in conversation:
-                    messages.append(message)
-        return messages
-
-    def search_agent(self, email:str=None, id=None):
-        if id is not None and email != None:
+    def search_agent(self, email: str = None, agent_id=None):
+        "Returns the first agent found that matches either the email or the id"
+        if agent_id is not None and email != None:
             _LO.error("Pick either email or ID to search by, not both")
             return None
-        if id is not None:
-            return self._get_agent_by_id(id)
+        if agent_id is not None:
+            return self._get_agent_by_id(agent_id)
         if email is not None:
             return self._get_agent_by_email(email)
 
-    def _get_agent_by_id(self, id):
-        url = f"https://{self.host}/api/v2/agents/{id}"
+    def _get_agent_by_id(self, agent_id):
+        "internal method"
+        url = f"https://{self.host}/api/v2/agents/{agent_id}"
         agent_j = self._request_and_validate(url)
 
         agent_o = FreshdeskAgent()
@@ -215,38 +120,62 @@ class FreshDesk:
         return agent_o
 
     def _get_agent_by_email(self, email):
-        if email is None or not isinstance(email,str):
+        """interanl method"""
+        if email is None or not isinstance(email, str):
             _LO.error("invalid parameters passed to _get_agent_by_email")
             return FreshdeskAgent()
         email_f = quote_plus(email)
         url = f"https://{self.host}/api/v2/agents?email={email_f}"
-        
+
         agent_j = self._request_and_validate(url)
         agent_o = FreshdeskAgent()
         agent_o.from_dict(agent_j[0])
         return agent_o
 
-    def _request_and_validate(self,url,headers={},body=None) -> dict:
-        
-        if headers == {}:
+    def _request_and_validate(self, url, headers=None, body=None) -> dict:
+        "internal method to request and return"
+        if headers is None:
             headers = self._get_default_headers()
-        
+
         try:
-            result = requests.get(url=url,headers=headers,data=body)
+            result = requests.get(url=url, headers=headers, data=body)
         except (ConnectionError) as e:
-            _LO.error("Couldn't connect to FD %s - %s",url,e)
-            return {} 
+            _LO.error("Couldn't connect to FD %s - %s", url, e)
+            return {}
         if result.status_code != 200:
-            _LO.error("Got an invalid response: %s - %s ",result.status_code, result.content)
+            _LO.error(
+                "Got an invalid response: %s - %s ", result.status_code, result.content
+            )
             return {}
         try:
             parsed_content = json.loads(result.content)
         except json.JSONDecodeError as e:
-            _LO.error("Couldn't parse JSON from FD - %s",e)
+            _LO.error("Couldn't parse JSON from FD - %s", e)
             return {}
         return parsed_content
 
+    def _request_and_validate_paginated(self, url, headers=None, body=None) -> List:
+        getNextPage = True
+        oldResponse = ""
+        param_char = "&" if "?" in url else "?"
+        current_page = 1
+        pages = []
+        while getNextPage and current_page <= 10:
+            r_url = f"{url}{param_char}page={current_page}"
+            resp = self._request_and_validate(r_url, headers, body)
+            if resp == oldResponse:
+                getNextPage = False
+                break
+            else:
+                oldResponse = resp
+                pages.append(resp)
+                current_page = current_page + 1
+        return pages
+
+
 class FreshdeskTicket:
+    "represents a freshdesk ticket"
+
     def __init__(self) -> None:
         self.status = ""
         self.id = 0
@@ -261,6 +190,7 @@ class FreshdeskTicket:
         self.response_group = 0
 
     def from_dict(self, new_params: dict) -> None:
+        "Takes the dictionary provided by the Freshdesk API and populates them into the object parameters"
         self.status = new_params["status"] if "status" in new_params else self.status
         self.id = new_params["id"] if "id" in new_params else self.id
         self.responder_id = (
@@ -301,16 +231,17 @@ class FreshdeskTicket:
         )
 
 
-class FreshdeskAgent():
+class FreshdeskAgent:
+    "loosely represnts some of the parameters in a freshdesk agent"
+
     def __init__(self) -> None:
         self.id = 0
         self.name = ""
         self.email = ""
-        
-    def from_dict(self, api_result:dict) -> None:
-        self.id = api_result.get("id",0)
-        contact = api_result.get("contact",{})
-        self.name = contact.get("name","")
-        self.email = contact.get("email","")
-         
 
+    def from_dict(self, api_result: dict) -> None:
+        "takes the results from an API call and applies them to the object's parameters"
+        self.id = api_result.get("id", 0)
+        contact = api_result.get("contact", {})
+        self.name = contact.get("name", "")
+        self.email = contact.get("email", "")
