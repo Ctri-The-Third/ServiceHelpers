@@ -96,7 +96,7 @@ def test_search_user(caplog):
         assert isinstance(users[user_key], ZendeskUser)
 
 
-def test_user_init(caplog):
+def test_user_init_and_invalid_handling(caplog):
     """verifies the error handling of a ZendeskUser object's initialisation"""
 
     test_strs = [

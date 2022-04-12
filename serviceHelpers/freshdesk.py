@@ -1,3 +1,4 @@
+import re
 import base64
 import json
 import logging
@@ -119,16 +120,22 @@ class FreshDesk:
         return agent_o
 
     def _get_agent_by_email(self, email):
-        """interanl method"""
+        """internal method"""
+
         if email is None or not isinstance(email, str):
-            _LO.error("invalid parameters passed to _get_agent_by_email")
+            _LO.error("invalid parameters type passed to _get_agent_by_email")
             return FreshdeskAgent()
+        if re.match(r".*@.*..*", email) is None:
+            _LO.error("invalid email format passed to _get_agent_by_email")
+            return FreshdeskAgent()
+
         email_f = quote_plus(email)
         url = f"https://{self.host}/api/v2/agents?email={email_f}"
 
         agent_j = self._request_and_validate(url)
         agent_o = FreshdeskAgent()
-        agent_o.from_dict(agent_j[0])
+        if len(agent_j) > 0:
+            agent_o.from_dict(agent_j[0])
         return agent_o
 
     def _request_and_validate(self, url, headers=None, body=None) -> dict:

@@ -88,3 +88,11 @@ def test_user_email(caplog):
 
     for record in caplog.records:
         assert record.levelno < logging.WARNING
+
+
+def test_user_invalid_email(caplog):
+    "fetch a user by email, with invalid items. Will"
+    fresh = FreshDesk(FRESHDESK_HOST, FRESHDESK_KEY)
+    emails = ["", 5, "not-real@test.com"]
+    for email in emails:
+        agent = fresh._get_agent_by_email(email)
