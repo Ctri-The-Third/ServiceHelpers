@@ -1,8 +1,8 @@
 import sys
 from datetime import datetime
 
-sys.path.append("")
 
+sys.path.append("")
 import os
 import json
 import logging
@@ -11,11 +11,13 @@ from serviceHelpers.zendesk import (
     zendesk,
     ZendeskOrganisation,
     ZendeskUser,
+    ZendeskWorklog,
 )
 
 ZENDESK_HOST = os.environ.get("ZENDESK_HOST")
 ZENDESK_KEY = os.environ.get("ZENDESK_KEY")
 TARGET_EMAIL = os.environ.get("TEST_EMAIL")
+WORKLOG_FIELD_ID = 360028226411
 
 
 def test_init(caplog) -> zendesk:
@@ -79,7 +81,7 @@ def test_get_user(caplog):
         assert entry.levelno < logging.ERROR
     assert isinstance(user, ZendeskUser)
 
-    assert user.name == "test test"
+    assert user.name == "Mat Perry"
     assert user.email == "test@test.com"
     assert user.user_id == 417316391
     assert user.organisationID is None
@@ -134,5 +136,38 @@ def test_search_for_tickets(caplog):
     tickets = zend.search_for_tickets(search_string=search_str)
     assert len(tickets) > 0
 
+    for entry in caplog.records:
+        assert entry.levelno < logging.ERROR
+
+
+def test_worklog_parse():
+    "check that if missing fields aren't supplied, the worklog is not reported as valid"
+    log = ZendeskWorklog()
+    log.from_json({"author_id": 123456789}, WORKLOG_FIELD_ID)
+    assert not log.is_valid
+
+
+def test_worklog_parse_invalid_ts_format():
+    "Bad TS format should return invalid"
+    log = ZendeskWorklog()
+    js_obj = {
+        "author_id": 123456789,
+        "events": [
+            {
+                "field_name": f"{WORKLOG_FIELD_ID}",
+                "created_at": "2022-04-04 01:33:50",
+                "value": "120",
+            }
+        ],
+    }
+    log.from_json(js_obj, WORKLOG_FIELD_ID)
+    assert not log.is_valid
+
+
+def test_get_worklogs_from_audit(caplog):
+    "Check that there are no errors when retrieving worklogs via the audit endpoint"
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+    logs = zend.get_worklogs(1223656, WORKLOG_FIELD_ID)
+    assert len(logs) > 0
     for entry in caplog.records:
         assert entry.levelno < logging.ERROR
