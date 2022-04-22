@@ -6,6 +6,7 @@ import requests
 from serviceHelpers.models.ZendeskTicket import ZendeskTicket
 from serviceHelpers.models.ZendeskOrg import ZendeskOrganisation
 from serviceHelpers.models.ZendeskUser import ZendeskUser
+from serviceHelpers.models.ZendeskWorklog import ZendeskWorklog
 
 _LO = logging.getLogger("ZendeskMapper")
 
@@ -18,6 +19,7 @@ class zendesk:
         self.host = host
         self.key = api_key
         self._headers = {"Authorization": f"Basic {self.key}"}
+        self.logger = _LO
         if host is None or api_key is None:
             _LO.warning("Zendesk object initialised without necessary parameters!!")
 
@@ -58,6 +60,37 @@ class zendesk:
         response = self._request_and_validate(url)
 
         return ZendeskUser(response.get("user", {}))
+
+    def get_worklogs(
+        self, ticket_id: int, time_since_last_update_field_id: int
+    ) -> list:
+        """Fetches a list of worklog objects from Zendesk using the audit trail"""
+        url = f"https://{self.host}/api/v2/tickets/{ticket_id}/audits"
+        response = self._request_and_validate_paginated(url)
+
+        #            "author_id": 387974337212,
+        #            "created_at": "2022-04-22T09:16:04Z",
+        #            "events": [
+        #                    "field_name": "360028226391", #total
+        #                    "value": "300",
+
+        #                    "value": "900",
+        #                    "field_name": "360028226411", #most recent
+        logs = []
+        for page in response:
+            if "audits" not in page:
+                self.logger.warning(
+                    "Got something unexpected from ZD, missing `audits` key"
+                )
+                continue
+            for audit in page["audits"]:
+
+                worklog = ZendeskWorklog()
+                worklog.from_json(audit, time_since_last_update_field_id)
+                if worklog.is_valid:
+                    logs.append(worklog)
+
+        return logs
 
     def _request_and_validate(self, url, headers=None, body=None) -> dict:
         "internal method to request and return"
