@@ -10,7 +10,7 @@ packages = setuptools.find_packages()
 
 setup(
     name="hex-helpers",
-    version="2.1.1",
+    version="2.2.0",
     description="A series of light helpers for `freshdesk`,`gmail`,`habitica`,`hue lights`,`jira`,`slack`,`trello`",
     long_description=README,
     long_description_content_type="text/markdown",
