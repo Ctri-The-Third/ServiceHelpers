@@ -12,6 +12,7 @@ class JiraTicket:
         summary="",
         assignee_id="",
         assignee_name="",
+        assignee_email="",
         status="",
         priority="",
         description="",
@@ -23,6 +24,7 @@ class JiraTicket:
         self.description = description
         self.assignee_id = assignee_id
         self.assignee_name = assignee_name
+        self.assignee_email = assignee_email
         self.status = status
         self.priority = priority
         self.created = created
@@ -52,6 +54,11 @@ class JiraTicket:
             assignee_dict["displayName"]
             if "displayName" in assignee_dict
             else self.assignee_name
+        )
+        self.assignee_email = (
+            assignee_dict["emailAddress"]
+            if "emailAddress" in assignee_dict
+            else self.assignee_email
         )
         self.priority = (
             priority_dict["name"] if "name" in priority_dict else self.priority
