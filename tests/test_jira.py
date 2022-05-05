@@ -183,5 +183,4 @@ def test_fetch_worklogs():
     instance = Jira(details)
 
     results = instance.fetch_worklogs_for_jira_ticket("GSDSE-51")
-    for worklog in results:
-        print(worklog)
+    assert len(results) > 0

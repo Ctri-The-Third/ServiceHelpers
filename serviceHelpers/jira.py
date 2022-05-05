@@ -57,9 +57,9 @@ class Jira:
             for worklog in results["worklogs"]:
                 parsed_worklog = JiraWorklog().from_json(worklog)
                 if parsed_worklog.is_valid:
-                    worklogs.append(worklog)
+                    worklogs.append(parsed_worklog)
 
-        return results["worklogs"] if "worklogs" in results else []
+        return worklogs
 
 
 def _request_and_validate(url, headers, body=None) -> dict:

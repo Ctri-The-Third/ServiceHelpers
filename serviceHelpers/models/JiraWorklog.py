@@ -1,8 +1,6 @@
 from datetime import datetime
 import logging
 
-from xmlrpc.client import DateTime
-
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%S.%f%z"
 
 
@@ -10,7 +8,7 @@ class JiraWorklog:
     "represents a single instance of time tracking on a Jira ticket"
 
     def __init__(self) -> None:
-        self.created = datetime.datetime.min
+        self.created = datetime.min
         self.duration_seconds = 0
         self.author_key = ""
         self.author_email = ""
@@ -37,9 +35,26 @@ class JiraWorklog:
                 json_dict.get("timeSpentSeconds"),
                 err,
             )
+
+        author_deets = json_dict.get("author") if "author" in json_dict else {}
+
+        self.author_email = (
+            author_deets.get("emailAddress")
+            if "emailAddress" in author_deets
+            else self.author_email
+        )
+        self.author_key = (
+            author_deets.get("key") if "key" in author_deets else self.author_key
+        )
+
         return self
 
     @property
     def is_valid(self):
         "whether or not the necessary parameters are populated"
-        return False
+        valid = 0
+        valid += 1 if self.author_key != "" else 0
+        valid += 1 if self.author_email != "" else 0
+        valid += 1 if self.created != datetime.min else 0
+
+        return valid == 3
