@@ -1,170 +1,86 @@
-from datetime import datetime
 import json
 import logging
 import urllib.parse
-from time import strptime
-from pytest import param
 
 import requests
+
+from serviceHelpers.models.JiraDetails import JiraDetails
+from serviceHelpers.models.JiraTicket import JiraTicket
+from serviceHelpers.models.JiraWorklog import JiraWorklog
 
 LO = logging.getLogger("jira")
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%S.%f%z"
 
 
 class Jira:
-    """ Represents a single Jira instance, accepting necessary methods to use the API. 
+    """Represents a single Jira instance, accepting necessary methods to use the API.
     Exposes methods for fetching tickets.
     """
-    def __init__(self, config) -> None:
-        # config = jiraDetails()
+
+    def __init__(self, config: JiraDetails) -> None:
+
+        config: JiraDetails
         self.valid = config.valid
         self.host = config.host
         self.name = config.name
         self.token = config.key
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Basic {self.token}",
+        }
+        self.logger = LO
 
     def fetch_jira_tickets(self, jql) -> dict:
         "takes a JQL string, encodes it, send its to Jira, and returns a dict of tickets, with the ticket ID (PRJ-123) as the dict key"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": "Basic %s" % self.token,
-        }
+
         jql = urllib.parse.quote(jql)
 
         url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
-        try:
-            r = requests.get(url, headers=headers)
-        except Exception as ex:
-            LO.error("Request failed for unknown reason %s",ex)
-            
-        if r.status_code != 200:
-            print(
-                "ERROR: %s could not fetch Jira tickets\n%s"
-                % (r.status_code, r.content)
-            )
-            return []
-        loaded_tickets = json.loads(r.content)
+
+        retrieved_results = _request_and_validate(url, self.headers)
         incoming_tickets = {}
-        for ticket in loaded_tickets["issues"]:
+        for ticket in retrieved_results["issues"]:
 
             new_ticket = JiraTicket().from_dict(ticket)
-            
 
             incoming_tickets[ticket["key"]] = new_ticket
             # print(json.dumps(ticket,indent=2))
         return incoming_tickets
 
+    def fetch_worklogs_for_jira_ticket(self, ticket_key: str) -> list:
+        "takes a ticket key and returns the worklogs for it"
 
-class JiraTicket:
-    "represents a single Jira ticket"
+        url = f"https://{self.host}/rest/api/2/issue/{ticket_key}/worklog"
+        results = _request_and_validate(url, self.headers)
+        worklogs = []
+        if "worklogs" in results:
+            for worklog in results["worklogs"]:
+                parsed_worklog = JiraWorklog().from_json(worklog)
+                if parsed_worklog.is_valid:
+                    worklogs.append(parsed_worklog)
 
-    def __init__(
-            self,
-            key="",
-            summary="",
-            assignee_id="",
-            assignee_name="",
-            status="",
-            priority="",
-            description="",
-            created=datetime.min,
-            updated=datetime.min,
-    ) -> None:
-        self.key = key
-        self.summary = summary
-        self.description = description
-        self.assignee_id = assignee_id
-        self.assignee_name = assignee_name
-        self.status = status
-        self.priority = priority
-        self.created = created
-        self.updated = updated
+        return worklogs
 
 
-    def from_dict(self, new_dict: dict):
-        """Takes the dictionary returned from the API and applies the contents to the matching parameters."""
-        fields = new_dict["fields"] if "fields" in new_dict else {}
-        assignee_dict = fields["assignee"] if "assignee" in fields else {}
-        assignee_dict = {} if assignee_dict is None else assignee_dict
-        priority_dict = fields["priority"] if "priority" in fields else {}
+def _request_and_validate(url, headers, body=None) -> dict:
+    "internal method to request and return results from Jira"
 
-        self.key = new_dict["key"] if "key" in new_dict else self.key
-        self.summary = fields["summary"] if "summary" in fields else self.summary
-        self.description = (
-            fields["description"] if "description" in fields else self.description
+    try:
+        result = requests.get(url=url, headers=headers, data=body)
+    except (ConnectionError) as e:
+        LO.error("Couldn't connect to Jira %s - %s", url, e)
+        return {}
+    if result.status_code != 200:
+        LO.error(
+            "Got an invalid response on the endpoint %s: %s - %s ",
+            url,
+            result.status_code,
+            result.content,
         )
-        self.assignee_id = (
-            assignee_dict["key"] if "key" in assignee_dict else self.assignee_id
-        )
-        self.assignee_id = (
-            assignee_dict["accountId"]
-            if "accountId" in assignee_dict
-            else self.assignee_id
-        )
-        self.assignee_name = (
-            assignee_dict["displayName"]
-            if "displayName" in assignee_dict
-            else self.assignee_name
-        )
-        self.priority = (
-            priority_dict["name"] if "name" in priority_dict else self.priority
-        )
-
-        status_dict = fields["status"] if "status" in fields else {}
-        self.status = status_dict["name"] if "name" in status_dict else self.status
-
-        self.created = (
-            datetime.strptime(fields["created"], TIMESTAMP_FORMAT)
-            if "created" in fields
-            else self.created
-        )
-
-        self.updated = (
-            datetime.strptime(fields["updated"], TIMESTAMP_FORMAT)
-            if "updated" in fields
-            else self.updated
-        )
-
-        return self
-
-
-class JiraDetails:
-    """represents the settings for a jira object"""
-
-    def __init__(self) -> None:
-        self.host = ""
-        self.name = ""
-        self.key = ""
-        self.default_assignee = ""
-
-        self._lo = logging.getLogger("jiraDetails")
-
-
-    def from_dict(self, src: dict) :
-        """Takes a dictionary and tries to map appropriate details to the class parameters."""
-        self.name = src["instanceName"] if "instanceName" in src else ""
-        self.host = src["instanceHost"] if "instanceHost" in src else ""
-        self.key = src["bearerToken"] if "bearerToken" in src else ""
-        self.default_assignee = (
-            src["instanceUserID"] if "instanceUserID" in src else ""
-        )
-
-
-        return self
-
-    @param
-    def valid(self):
-        """self checking of the parameters."""
-        valid = True
-        if self.name == "":
-            LO.warning("jira obj name is blank")
-            valid = False
-        if self.host == "":
-            LO.warning("jira object host is blank")
-            valid = False
-        if self.default_assignee == "":
-            LO.warning("jira object primary_user_id is blank")
-        if self.key == "":
-            LO.warning("key missing from jira settings")
-            valid = False
-        
-        return valid 
+        return {}
+    try:
+        parsed_content = json.loads(result.content)
+    except json.JSONDecodeError as e:
+        LO.error("Couldn't parse JSON from Jira - %s", e)
+        return {}
+    return parsed_content
