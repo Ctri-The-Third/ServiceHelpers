@@ -66,21 +66,16 @@ def _request_and_validate(url, headers, body=None) -> dict:
     "internal method to request and return results from Jira"
 
     try:
-        r = requests.get(url, headers=headers)
-    except Exception as ex:
-        LO.error("Request failed for unknown reason %s", ex)
-
-    if r.status_code != 200:
-        LO.error("ERROR: %s could not fetch Jira tickets\n%s", r.status_code, r.content)
-        return {}
-    try:
         result = requests.get(url=url, headers=headers, data=body)
     except (ConnectionError) as e:
         LO.error("Couldn't connect to Jira %s - %s", url, e)
         return {}
     if result.status_code != 200:
         LO.error(
-            "Got an invalid response: %s - %s ", result.status_code, result.content
+            "Got an invalid response on the endpoint %s: %s - %s ",
+            url,
+            result.status_code,
+            result.content,
         )
         return {}
     try:
