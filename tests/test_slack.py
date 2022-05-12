@@ -28,9 +28,10 @@ def test_init_slack_helper_success():
 @pytest.mark.xfail(reason="Expected action not yet implemented")
 def test_init_slack_helper_incorrect_token_format():
     "Checks how the helper responds to an invalid token"
-    bad_slack_token = "x5xb-1234-sssssA|ZZZZZZZZZZZZZzzz][][6"
+    bad_slack_token = "abcd-1234-sssssA|ZZZZZZZZZZZZZzzz][][6"
 
-    helper = slack(bad_slack_token, "", 5, None)
+    for bad_token in [bad_slack_token, 5, None]:
+        helper = slack(bad_token, "")
 
     ### Post Slack Message ###
 
