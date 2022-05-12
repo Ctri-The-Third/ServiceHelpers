@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 
 import requests
-from yaml import parse
 
 LO = logging.getLogger("slack service helper")
 
