@@ -17,6 +17,11 @@ SLACK_WEBHOOK = os.environ.get("SLACK_WEBHOOK")
 SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
 
 
+def test_environment_key():
+    "Test whether or not the token is configured."
+    assert SLACK_TOKEN is not None
+
+
 def test_init_slack_helper_success():
     "Tests whether or not the slack class initialises"
     # config = cfg.ConfigHelper("tests/unitTest_config.json")
