@@ -10,6 +10,7 @@ env:
   TEST_EMAIL: ${{ secrets.TEST_EMAIL}}
   JIRA_HOST_1: ${{secrets.JIRA_HOST_1}}
   JIRA_KEY_1: ${{secrets.JIRA_KEY_1}}
+  SLACK_TOKEN: ${{secrets.SLACK_TOKEN}}
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
