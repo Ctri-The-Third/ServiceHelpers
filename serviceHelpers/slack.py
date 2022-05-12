@@ -1,12 +1,11 @@
 import json
 import logging
 from datetime import datetime
-from html.parser import HTMLParser
-from io import StringIO
 
 import requests
+from yaml import parse
 
-lo = logging.getLogger("slack service helper")
+LO = logging.getLogger("slack service helper")
 
 
 class slack:
@@ -20,6 +19,7 @@ class slack:
         """
         self.token = token
         self.webhook = webhook
+        self.logger = LO
 
     def post_to_slack_via_token(
         self, text, channelID, parent_ts=None, unfurl: bool = True, attachment=None
@@ -35,7 +35,7 @@ class slack:
 
         if parent_ts is not None:
             body["thread_ts"] = parent_ts
-        
+
         if attachment is not None:
             body["attachments"] = attachment
 
@@ -53,7 +53,7 @@ class slack:
         j_repsonse = {}
         try:
             j_repsonse = json.loads(response)
-        except:
+        except requests.JSONDecodeError:
             logging.warn(
                 "Couldn't get a timestamp from the slack post - this means no replies are possible"
             )
@@ -73,7 +73,7 @@ class slack:
         return headers
 
     def postToSlackVia_webhook(self, webhook="", text=None) -> str:
-
+        "Uses a webhook to post a text message to slack."
         if webhook == "":
             webhook = self.webhook
         if webhook == "":
@@ -89,6 +89,7 @@ class slack:
         return r.content
 
     def fetch_messages(self, channel, since: datetime = datetime.min, limit=200):
+        "Fetches messages from slack in a specific channel, from a given datetime"
         return_messages = []
         cont = True
         oldest = since.timestamp
@@ -115,3 +116,47 @@ class slack:
             if response.status_code != 200:
                 print(content, response.status_code)
         return return_messages
+
+    def fetch_user_profile(self, user_id) -> dict:
+        "With the ID for a slack user, return their profile as a dictionary"
+        url = "https://slack.com/api/users.profile.get"
+        parameters = {"user": user_id}
+        headers = self._get_default_headers()
+
+        parsed_json = _request_and_validate(url, headers, params=parameters)
+        if parsed_json.get("ok") is not True:
+            return {}
+
+        return parsed_json.get("profile", {})
+
+
+def _request_and_validate(url, headers, body=None, params=None) -> dict:
+    "internal method to request and return results from Slack"
+
+    try:
+        result = requests.get(url=url, headers=headers, data=body, params=params)
+    except (ConnectionError) as e:
+        LO.error("Couldn't connect to Slack API %s - %s", url, e)
+        return {}
+    if result.status_code != 200:
+        LO.error(
+            "Got an invalid response on the endpoint %s: %s - %s ",
+            url,
+            result.status_code,
+            result.content,
+        )
+        return {}
+    try:
+        parsed_content: dict = json.loads(result.content)
+    except json.JSONDecodeError as e:
+        LO.error("Couldn't parse JSON from Jira - %s", e)
+        return {}
+    if "ok" not in parsed_content:
+        LO.warning("Doesn't look like valid Slack JSON?")
+    elif parsed_content.get("ok", "") != True:
+        LO.warning(
+            "Request made it to slack but was rejected, %s",
+            parsed_content.get("error", "no error block found"),
+        )
+
+    return parsed_content
