@@ -128,3 +128,32 @@ def test_post_to_slack_no_attachment(caplog):
 
     for record in caplog.records:
         assert record.levelno < logging.WARNING
+
+
+def test_fetch_user_profile(caplog):
+    "Checks a user profile from the test server"
+    helper = slack(SLACK_TOKEN, SLACK_WEBHOOK)
+
+    good_profile_id = "U0214H4VCAX"
+
+    profile = helper.fetch_user_profile(good_profile_id)
+    assert isinstance(profile["email"], str)
+    assert isinstance(profile["display_name_normalized"], str)
+    assert isinstance(profile["email"], str)
+    assert isinstance(profile["status_emoji"], str)
+    assert isinstance(profile["status_text"], str)
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
+
+
+def test_fetch_bad_user_id(caplog):
+    "Checks what happens when we miss"
+
+    helper = slack(SLACK_TOKEN, SLACK_WEBHOOK)
+
+    bad_profile_ids = [None, 5, "hello world"]
+
+    for id in bad_profile_ids:
+        _ = helper.fetch_user_profile(id)
+    for record in caplog.records:
+        assert record.levelno >= logging.WARNING

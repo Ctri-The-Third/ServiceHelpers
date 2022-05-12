@@ -117,8 +117,13 @@ class slack:
                 print(content, response.status_code)
         return return_messages
 
-    def fetch_user_profile(self, user_id) -> dict:
+    def fetch_user_profile(self, user_id: str) -> dict:
         "With the ID for a slack user, return their profile as a dictionary"
+
+        if not isinstance(user_id, str):
+            logging.error("user_id must be a string")
+            return {}
+
         url = "https://slack.com/api/users.profile.get"
         parameters = {"user": user_id}
         headers = self._get_default_headers()
