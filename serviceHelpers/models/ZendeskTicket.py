@@ -2,6 +2,8 @@ import logging
 import json
 from datetime import datetime
 
+from serviceHelpers.models.ZendeskUser import ZendeskUser
+
 # 2021-11-25T12:00:15Z
 _ZD_FORMAT = r"%Y-%m-%dT%H:%M:%SZ"
 
@@ -22,8 +24,10 @@ class ZendeskTicket:
         self.assignee_id = None
         self.requester_id = None
         self.requester_name = ""
+        self.requester = None
         self.group_id = 0
-        self.lo = logging.getLogger("zendeskHelper.zendeskTicket")
+        self.logger = logging.getLogger("zendeskHelper.zendeskTicket")
+        self.custom_fields = {}
         pass
 
     def from_string(self, str):
@@ -31,7 +35,7 @@ class ZendeskTicket:
         try:
             self.from_dict(json.loads(str))
         except Exception as e:
-            self.lo.error("Couldn't parse a ticket string into a dict")
+            self.logger.error("Couldn't parse a ticket string into a dict")
         return self
 
     def from_dict(self, source: dict):
@@ -54,7 +58,7 @@ class ZendeskTicket:
                 else self.updated_ts
             )
         except ValueError as e:
-            self.lo.error(
+            self.logger.error(
                 "Date found but not parsed properly : %s", source["updated_at"]
             )
         self.summary = source["subject"] if "subject" in source else self.summary
@@ -68,7 +72,12 @@ class ZendeskTicket:
         self.group_id = source["group_id"] if "group_id" in source else self.group_id
         self.status = source["status"] if "status" in source else self.status
         self.priority = source["priority"] if "priority" in source else self.priority
-
+        for custom_field in source["custom_fields"]:
+            try:
+                if custom_field["value"] is not None:
+                    self.custom_fields[custom_field["id"]] = custom_field["value"]
+            except KeyError as err:
+                self.logger.warning("Couldn't properly get a custom field - %s", err)
         return self
 
     def __str__(self) -> str:
