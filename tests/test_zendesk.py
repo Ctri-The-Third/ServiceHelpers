@@ -12,6 +12,7 @@ from serviceHelpers.zendesk import (
     ZendeskOrganisation,
     ZendeskUser,
     ZendeskWorklog,
+    ZendeskTicket,
 )
 
 ZENDESK_HOST = os.environ.get("ZENDESK_HOST")
@@ -131,13 +132,17 @@ def test_user_init_and_invalid_handling(caplog):
 def test_search_for_tickets(caplog):
     "Check for tickets belonging to a specific group"
     zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
-    search_str = "requester:ctri.goudie@unity3d.com"
+    search_str = "1239674"
 
     tickets = zend.search_for_tickets(search_string=search_str)
+
     assert len(tickets) > 0
 
     for entry in caplog.records:
         assert entry.levelno < logging.ERROR
+
+    for _, ticket in tickets.items():
+        assert isinstance(ticket, ZendeskTicket)
 
 
 def test_worklog_parse():
@@ -171,3 +176,20 @@ def test_get_worklogs_from_audit(caplog):
     assert len(logs) > 0
     for entry in caplog.records:
         assert entry.levelno < logging.ERROR
+
+
+def test_custom_fields():
+    "Fetches a test ticket and checks that there are appropriate custom fields populated"
+
+    target_id = 1239674
+
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+
+    tickets = zend.search_for_tickets(f"{target_id}")
+    ticket = tickets[1239674]
+    ticket: ZendeskTicket
+
+    assert isinstance(ticket.custom_fields, dict)
+    for field_id in ticket.custom_fields:
+        isinstance(ticket.custom_fields[field_id], (bool, str))
+    assert True
