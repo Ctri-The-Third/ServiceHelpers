@@ -127,14 +127,15 @@ class trello():
         return card 
 
 
-    def update_card( self, card_id, title, description = None):
+    def update_card( self, card_id, title, description = None, pos = None):
         
         params = self._get_trello_params()
         params["name"] = title
         
         if description is not None:
             params["desc"] =description
-
+        if pos is not None:
+            params["pos"] = pos
         url = "https://api.trello.com/1/cards/%s" % (card_id)
         r = requests.put(url,params=params)
         if r.status_code != 200:

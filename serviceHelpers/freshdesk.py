@@ -16,7 +16,7 @@ import requests
 _LO = logging.getLogger("freshdesk")
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%SZ"
 
-
+ 
 class FreshDesk:
     "Represents a single freshdesk tenancy"
 
@@ -110,6 +110,27 @@ class FreshDesk:
         if email is not None:
             return self._get_agent_by_email(email)
 
+    def reply_to_ticket(self, ticket_id, agent_id, reply_txt):
+        "Takes an HTML string and sends it as a reply from the given agent_id"
+        url = f"https://{self.host}/api/v2/tickets/{ticket_id}/reply"
+        data = {"body": reply_txt, "user_id": agent_id}
+        self._request_and_validate(url, headers=None, body=data, method="post")
+
+    def update_ticket(
+        self, ticket_id, responder_id=None, status=None, ticket_type=None
+    ):
+        "updates a ticket with new values for its fields"
+        url = f"https://{self.host}/api/v2/tickets/{ticket_id}"
+        data = {}
+        if responder_id is not None:
+            data["responder_id"] = responder_id
+        if status is not None:
+            data["status"] = status
+        if ticket_type is not None:
+            data["type"] = ticket_type
+        data = json.dumps(data)
+        self._request_and_validate(url, body=data, method="put")
+
     def _get_agent_by_id(self, agent_id):
         "internal method"
         url = f"https://{self.host}/api/v2/agents/{agent_id}"
@@ -138,25 +159,34 @@ class FreshDesk:
             agent_o.from_dict(agent_j[0])
         return agent_o
 
-    def _request_and_validate(self, url, headers=None, body=None) -> dict:
+    def _request_and_validate(self, url, headers=None, body=None, method="get") -> dict:
         "internal method to request and return"
+        if isinstance(body, dict):
+            body = json.dumps(body)
         if headers is None:
             headers = self._get_default_headers()
-
         try:
-            result = requests.get(url=url, headers=headers, data=body)
-        except (ConnectionError) as e:
-            _LO.error("Couldn't connect to FD %s - %s", url, e)
+            if method == "get":
+                result = requests.get(url=url, headers=headers, data=body)
+            elif method == "post":
+                result = requests.post(url=url, headers=headers, data=body)
+            elif method == "put":
+                result = requests.put(url=url, headers=headers, data=body)
+        except (ConnectionError) as err:
+            _LO.error("Couldn't connect to FD %s - %s", url, err)
             return {}
-        if result.status_code != 200:
+
+        if result.status_code not in (200, 201):
             _LO.error(
                 "Got an invalid response: %s - %s ", result.status_code, result.content
             )
             return {}
+        if len(result.content) == 0:
+            return None
         try:
             parsed_content = json.loads(result.content)
-        except json.JSONDecodeError as e:
-            _LO.error("Couldn't parse JSON from FD - %s", e)
+        except json.JSONDecodeError as err:
+            _LO.error("Couldn't parse JSON from FD - %s", err)
             return {}
         return parsed_content
 
