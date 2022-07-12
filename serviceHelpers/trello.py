@@ -6,7 +6,6 @@ import requests
 import json
 import urllib
 
-from soupsieve import match
 
 
 
