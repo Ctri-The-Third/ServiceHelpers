@@ -126,13 +126,13 @@ class FreshDesk:
             data["responder_id"] = responder_id
 
         if responder_group is not None: 
-            data["responder_group"] = responder_group
+            data["group_id"] = responder_group
         if status is not None:
             data["status"] = status
         if ticket_type is not None:
             data["type"] = ticket_type
 
-        if len(kwargs.items() > 0 ):
+        if len(kwargs.items()) > 0 :
             data["custom_fields"] = {}
         for key,item in kwargs.items():
             data["custom_fields"][key] = item
