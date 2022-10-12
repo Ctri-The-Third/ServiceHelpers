@@ -96,7 +96,7 @@ class trello():
         return filtered_cards
         #creates Key:value FOR - (for each Key, value in cards) BUT ONLY IF the list_id matches
 
-    def fetch_trello_cards(self):
+    def fetch_trello_cards(self) -> list:
         """returns all visible cards from the board"""    
         url = "https://api.trello.com/1/boards/%s/cards" % (self.board_id)
         params = self._get_trello_params()
