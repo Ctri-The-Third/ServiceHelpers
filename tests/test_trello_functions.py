@@ -2,10 +2,10 @@ import sys
 sys.path.append("")
 import os 
 
-from trello import trello
-
+from serviceHelpers.trello import trello
 
 TEST_BOARD_ID = "5f0dee6c5026590ce300472c"
+TEST_LIST_ID = "5f0dee6c5026590ce3004732"
 
 def test_trello_sort():
     helper = trello("none","none","none")
@@ -90,3 +90,16 @@ def test_get_list():
     helper.dirty_cache = False
     cards = helper.get_all_cards_on_list("yes")
     assert(len(cards) == 3 )
+
+
+def test_create_card_at_correct_position():
+    helper = trello(TEST_BOARD_ID,os.environ["TRELLO_KEY"],os.environ["TRELLO_TOKEN"])
+    card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID,"A temporary card that should get deleted",position=0)
+    helper.deleteTrelloCard(card["id"])
+    
+    card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID,"A temporary card that should get deleted",position=3)
+    helper.deleteTrelloCard(card["id"])
+    
+
+    card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID,"A temporary card that should get deleted",position=-1)
+    helper.deleteTrelloCard(card["id"])

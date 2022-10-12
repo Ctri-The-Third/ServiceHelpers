@@ -89,7 +89,9 @@ class trello():
         return
     def get_all_cards_on_list(self, list_id):
         """Returns all the visible cards on a given list"""
-        cards = self.fetch_trello_cards() if self.dirty_cache else self._cached_cards
+        if self.dirty_cache:
+            self.fetch_trello_cards() 
+        cards = self._cached_cards
         filtered_cards = {k:v for k,v in cards.items() if v["idList"] == list_id}
         return filtered_cards
         #creates Key:value FOR - (for each Key, value in cards) BUT ONLY IF the list_id matches
@@ -110,7 +112,7 @@ class trello():
         
         cards = json.loads(r.content)
         self._populate_cache(cards)
-
+        self.dirty_cache = False
         return cards
 
     def fetch_trello_card(self,id):
@@ -170,7 +172,8 @@ class trello():
             params["idLabels"] =  (labelID)
         if dueTimestamp is not None:
             params["due"] = dueTimestamp
-        if position is not None:
+        if position is not None and position >= 0:
+            #if position is -1 (bottom) then use default behaviour
             params["pos"] = self.convert_index_to_pos(list_id,position)
         params["idList"] = list_id
 
