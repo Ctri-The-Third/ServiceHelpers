@@ -21,7 +21,7 @@ class trello():
         self.dirty_cache = True
         pass
 
-    def find_trello_card(self, regex):
+    def find_trello_card(self, regex) -> dict:
         "uses regexes to search name and description of cached / fetched cards. Returns the first it finds."
         cards = self.fetch_trello_cards() if self.dirty_cache else self._cached_cards
         
@@ -188,8 +188,8 @@ class trello():
         return card 
 
 
-    def update_card( self, card_id, title, description = None, pos = None):
-        
+    def update_card( self, card_id:str, title:str, description:str = None, pos:float = None, new_list_id:str = None):
+        "Update the card with a new title, description, position. use list_id to move to another list. "
         params = self._get_trello_params()
         params["name"] = title
         
@@ -197,6 +197,8 @@ class trello():
             params["desc"] =description
         if pos is not None:
             params["pos"] = pos
+        if new_list_id is not None:
+            params["idList"] = new_list_id
         url = "https://api.trello.com/1/cards/%s" % (card_id)
         r = requests.put(url,params=params)
         if r.status_code != 200:

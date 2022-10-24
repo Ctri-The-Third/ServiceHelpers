@@ -6,6 +6,7 @@ from serviceHelpers.trello import trello
 
 TEST_BOARD_ID = "5f0dee6c5026590ce300472c"
 TEST_LIST_ID = "5f0dee6c5026590ce3004732"
+TEST_LIST_ID_TWO = "61d8367af7a2942f50afd468"
 
 def test_trello_sort():
     helper = trello("none","none","none")
@@ -103,3 +104,14 @@ def test_create_card_at_correct_position():
 
     card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID,"A temporary card that should get deleted",position=-1)
     helper.deleteTrelloCard(card["id"])
+
+def test_move_card_from_list_to_list():
+    helper = trello(TEST_BOARD_ID,os.environ["TRELLO_KEY"],os.environ["TRELLO_TOKEN"])
+    card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID)
+    helper.update_card(card["id"], card["name"],new_list_id=TEST_LIST_ID_TWO)
+    new_card = helper.fetch_trello_card(card["id"])
+
+    helper.deleteTrelloCard(new_card["id"])
+    assert card["id"] == new_card["id"]
+    assert new_card.get("idList","") == TEST_LIST_ID_TWO
+
