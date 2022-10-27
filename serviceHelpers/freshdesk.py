@@ -117,17 +117,25 @@ class FreshDesk:
         self._request_and_validate(url, headers=None, body=data, method="post")
 
     def update_ticket(
-        self, ticket_id, responder_id=None, status=None, ticket_type=None
+        self, ticket_id, responder_id:int=None, responder_group:int=None, status=None, ticket_type=None, **kwargs
     ):
         "updates a ticket with new values for its fields"
         url = f"https://{self.host}/api/v2/tickets/{ticket_id}"
         data = {}
         if responder_id is not None:
             data["responder_id"] = responder_id
+
+        if responder_group is not None: 
+            data["group_id"] = responder_group
         if status is not None:
             data["status"] = status
         if ticket_type is not None:
             data["type"] = ticket_type
+
+        if len(kwargs.items()) > 0 :
+            data["custom_fields"] = {}
+        for key,item in kwargs.items():
+            data["custom_fields"][key] = item
         data = json.dumps(data)
         self._request_and_validate(url, body=data, method="put")
 
