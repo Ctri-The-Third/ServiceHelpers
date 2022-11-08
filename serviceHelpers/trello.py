@@ -23,20 +23,32 @@ class trello():
 
     def find_trello_card(self, regex) -> dict:
         "uses regexes to search name and description of cached / fetched cards. Returns the first it finds."
-        cards = self.fetch_trello_cards() if self.dirty_cache else self._cached_cards
-        
-        for card in cards:
-            if re.search(regex,card["name"]) or re.search(regex,card["desc"]):
-                return card
-        return 
+        cards = (
+            self.fetch_trello_cards()
+            if self.dirty_cache
+            else list(self._cached_cards.values())
+        )
 
+        for card in cards:
+            card:dict
+            try:
+                if re.search(regex, card.get("name","")) or re.search(regex, card.get("desc","")):
+                    return card
+
+            except (Exception,) as err:
+                lo.error(
+                    "Failed to parse trello card's title & description when looking for matches, %s ",
+                    err,
+                )
+        return
     def find_trello_cards(self,regex):
         "uses regexes to search name and description of cached / fetched cards. Returns all cards found."
 
-        cards = self.fetch_trello_cards() if self.dirty_cache else self._cached_cards
+        cards = self.fetch_trello_cards() if self.dirty_cache else list(self._cached_cards.values())
         foundCards = []
         for card in cards: 
-            if re.search(regex,card["name"]) or re.search(regex,card["desc"]):
+            card:dict
+            if re.search(regex,card.get("name","")) or re.search(regex,card.get("desc","")):
                 foundCards.append(card)
         return foundCards
 
