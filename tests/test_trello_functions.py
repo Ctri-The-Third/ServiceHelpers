@@ -93,6 +93,24 @@ def test_get_list():
     assert(len(cards) == 3 )
 
 
+def test_find_cards():
+    helper = trello("none","none","none")
+    helper._cached_cards = {
+        "id_1":{"id":"id_1","name":"match","desc":""},
+        "id_2":{"id":"id_2","name":"main","desc":"match"},
+        "id_3":{"id":"id_3","name":"skip","desc":""},
+        "id_4":{"id":"id_4","name":"main","desc":"different"},
+        "id_5":{"id":"id_5","name":"fancy"},
+        "id_6":{"id":"id_6","name":"jam","desc":"hello"},
+        "id_7":{"id":"id_7","name":"train","desc":"ignore me"},
+        
+    }
+    helper.dirty_cache = False
+    found = helper.find_trello_cards("match")
+    assert isinstance(found,list)
+    assert len(found) == 2
+
+
 def test_create_card_at_correct_position():
     helper = trello(TEST_BOARD_ID,os.environ["TRELLO_KEY"],os.environ["TRELLO_TOKEN"])
     card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID,"A temporary card that should get deleted",position=0)
