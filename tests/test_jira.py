@@ -111,6 +111,12 @@ def test_jira_init() -> Jira:
     return test_instance
 
 
+def test_fetch_one(caplog:LogCaptureFixture) -> JiraTicket():
+
+    jira_instance = test_jira_init()
+    ticket = jira_instance.fetch_jira_ticket("GSDSE-1")
+    print(ticket)
+
 def test_fetch(caplog: LogCaptureFixture) -> JiraTicket:
     """Exceutes a JQL string (expects a single closed ticket return)"""
     failures = 0

@@ -99,6 +99,21 @@ def test_search_user(caplog):
         assert isinstance(users[user_key], ZendeskUser)
 
 
+def test_get_comments(caplog):
+
+    zd = test_init(caplog)
+
+    comments = zd.get_comments(-1) 
+    assert len(comments) == 0
+
+    comments = zd.get_comments(1120539)
+    assert len(comments) == 2 
+
+    tickets = zd.search_for_tickets("1120539")
+    for _,ticket in tickets.items():
+        ticket = zd.get_comments(ticket=ticket)
+        len( ticket.comments ) == 2 
+
 def test_user_init_and_invalid_handling(caplog):
     """verifies the error handling of a ZendeskUser object's initialisation"""
 
