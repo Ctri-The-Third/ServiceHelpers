@@ -30,6 +30,14 @@ class Jira:
         }
         self.logger = LO
 
+    def fetch_jira_ticket(self, key:str) -> JiraTicket:
+        "Takes a jira key or ID and gets the returned issue"
+        url = f"https://{self.host}/rest/api/2/issue/{key}"
+        results = _request_and_validate(url,self.headers)
+        ticket = JiraTicket().from_dict(results)
+        return ticket
+
+
     def fetch_jira_tickets(self, jql) -> dict:
         "takes a JQL string, encodes it, send its to Jira, and returns a dict of tickets, with the ticket ID (PRJ-123) as the dict key"
 

@@ -26,6 +26,7 @@ class ZendeskTicket:
         self.requester_name = ""
         self.requester = None
         self.group_id = 0
+        self.comments = []
         self.logger = logging.getLogger("zendeskHelper.zendeskTicket")
         self.custom_fields = {}
         pass

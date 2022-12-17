@@ -23,6 +23,26 @@ class zendesk:
         if host is None or api_key is None:
             _LO.warning("Zendesk object initialised without necessary parameters!!")
 
+    def get_comments(self, ticket_id:int = None, ticket:ZendeskTicket = None):
+        if not ticket_id and not ticket:
+            self.logger.warning("No id/ticket passed to zendesk.get_comments")
+            return None
+        if ticket:
+            ticket_id = ticket.id
+        
+        url = f"https://{self.host}/api/v2/tickets/{ticket_id}/comments?sort=-created_at"
+        
+        try:
+            response = self._request_and_validate_paginated(url)
+            comments = response[0]["comments"]
+            if ticket is not None: #if we're searching by ticket, not by ticket_id
+                ticket.comments = comments
+                return ticket #return a ticket that now includes comments
+            return comments #return just the comments 
+        except Exception as err:
+            self.logger.error("Unknown error when getting comments for ticket %s, %s", ticket_id,err)
+        return []
+
     def search_for_tickets(self, search_string):
         """uses the zendesk search notation that's detailed here:
         https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/
