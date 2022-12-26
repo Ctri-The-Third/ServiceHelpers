@@ -203,21 +203,34 @@ class trello():
         return card 
 
 
-    def update_card( self, card_id:str, title:str, description:str = None, pos:float = None, new_list_id:str = None):
-        "Update the card with a new title, description, position. use list_id to move to another list. "
+    def update_card(
+        self,
+        card_id: str,
+        title: str,
+        description: str = None,
+        pos: float = None,
+        new_list_id: str = None,
+        new_due_timestamp: str = None,
+    ):
+        "Update the card with a new title, description, position. use list_id to move to another list."
         params = self._get_trello_params()
         params["name"] = title
-        
+
         if description is not None:
-            params["desc"] =description
+            params["desc"] = description
         if pos is not None:
             params["pos"] = pos
         if new_list_id is not None:
             params["idList"] = new_list_id
+        if new_due_timestamp is not None:
+            params["due"] = new_due_timestamp
         url = "https://api.trello.com/1/cards/%s" % (card_id)
-        r = requests.put(url,params=params)
+        r = requests.put(url, params=params)
         if r.status_code != 200:
-            print("ERROR: %s couldn't update the Gmail Trello card's name" % (r.status_code))
+            print(
+                "ERROR: %s couldn't update the Gmail Trello card's name"
+                % (r.status_code)
+            )
         if not self._try_update_cache(r.content):
             self.dirty_cache = True
         return
