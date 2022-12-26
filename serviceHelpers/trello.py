@@ -22,7 +22,7 @@ class trello():
         pass
 
     def find_trello_card(self, regex) -> dict:
-        "uses regexes to search name and description of cached / fetched cards. Returns the first it finds."
+        "uses regexes to search name and description of cached / fetched cards, or exactly matching IDs. Returns the first it finds. "
         cards = (
             self.fetch_trello_cards()
             if self.dirty_cache
@@ -32,7 +32,8 @@ class trello():
         for card in cards:
             card:dict
             try:
-                if re.search(regex, card.get("name","")) or re.search(regex, card.get("desc","")):
+                
+                if card.get("id","") == regex or re.search(regex, card.get("name","")) or re.search(regex, card.get("desc","")):
                     return card
 
             except (Exception,) as err:
@@ -48,7 +49,7 @@ class trello():
         foundCards = []
         for card in cards: 
             card:dict
-            if re.search(regex,card.get("name","")) or re.search(regex,card.get("desc","")):
+            if card.get("id","") == regex or re.search(regex, card.get("name","")) or re.search(regex, card.get("desc","")):
                 foundCards.append(card)
         return foundCards
 
@@ -196,26 +197,42 @@ class trello():
             print(r.content)
             return 
         card = json.loads(r.content)
-        self.dirty_cache = True
+
+        if not self._try_update_cache(r.content):
+            self.dirty_cache = True
         return card 
 
 
-    def update_card( self, card_id:str, title:str, description:str = None, pos:float = None, new_list_id:str = None):
-        "Update the card with a new title, description, position. use list_id to move to another list. "
+    def update_card(
+        self,
+        card_id: str,
+        title: str,
+        description: str = None,
+        pos: float = None,
+        new_list_id: str = None,
+        new_due_timestamp: str = None,
+    ):
+        "Update the card with a new title, description, position. use list_id to move to another list."
         params = self._get_trello_params()
         params["name"] = title
-        
+
         if description is not None:
-            params["desc"] =description
+            params["desc"] = description
         if pos is not None:
             params["pos"] = pos
         if new_list_id is not None:
             params["idList"] = new_list_id
+        if new_due_timestamp is not None:
+            params["due"] = new_due_timestamp
         url = "https://api.trello.com/1/cards/%s" % (card_id)
-        r = requests.put(url,params=params)
+        r = requests.put(url, params=params)
         if r.status_code != 200:
-            print("ERROR: %s couldn't update the Gmail Trello card's name" % (r.status_code))
-        self.dirty_cache = True
+            print(
+                "ERROR: %s couldn't update the Gmail Trello card's name"
+                % (r.status_code)
+            )
+        if not self._try_update_cache(r.content):
+            self.dirty_cache = True
         return
 
 
@@ -358,3 +375,27 @@ class trello():
                 continue
 
             self._cached_cards[card.get("id")] = card 
+
+    def _try_update_cache(self,response_content) -> bool:
+        "attempts to parse the raw response from update/create and turn it into a cached card. Returns True on success"
+                
+        try:
+            response_content = response_content.decode()
+        except (UnicodeDecodeError, AttributeError):
+            pass
+
+        if not isinstance(response_content,str):
+            logger.error("error in _try_update_cache, supplied object not a string.")
+            return False
+        try:
+            card = json.loads(response_content)
+            card:dict
+        except Exception as err:
+            logger.error("error in _try_update_cache, couldn't parse supplied object becase '%s'",err)
+            logger.debug("supplied object %s", response_content)
+            return False
+            
+        self._cached_cards[card.get("id")] = card 
+        return True 
+        
+        
