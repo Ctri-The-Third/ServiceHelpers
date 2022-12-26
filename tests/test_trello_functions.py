@@ -133,3 +133,16 @@ def test_move_card_from_list_to_list():
     assert card["id"] == new_card["id"]
     assert new_card.get("idList","") == TEST_LIST_ID_TWO
 
+
+
+def test_update_card():
+    old_ts = "2022-10-01 23:59:00"
+    new_ts = "2011-11-11 11:11:00"
+    helper = trello(TEST_BOARD_ID,os.environ["TRELLO_KEY"],os.environ["TRELLO_TOKEN"])
+    card = helper.create_card("TEST CARD, PLEASE IGNORE",TEST_LIST_ID,dueTimestamp=old_ts)
+    helper.update_card(card["id"], card["name"], new_due_timestamp=new_ts)
+    new_card = helper.find_trello_card(card["id"])
+
+    helper.deleteTrelloCard(new_card["id"])
+    assert new_card["due"] == "2011-11-11T11:11:00.000Z"
+    
