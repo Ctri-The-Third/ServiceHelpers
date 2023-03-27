@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: PyTest
+name: PyTest 3.8
 
 env:
   ZENDESK_KEY: ${{ secrets.ZENDESK_KEY}}
