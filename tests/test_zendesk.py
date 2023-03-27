@@ -209,7 +209,15 @@ def test_custom_fields():
         isinstance(ticket.custom_fields[field_id], (bool, str))
     assert True
 
+def test_get_form_id_in_ticket():
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+    target_id = 1239674
 
+    tickets = zend.search_for_tickets(f"{target_id}")
+    ticket = tickets[1239674]
+    ticket: ZendeskTicket
+
+    assert ticket.ticket_form_id is not 0 
 
 def test_get_form_details():
     "fetches a test form and checks that the returned name matches the expected value"
