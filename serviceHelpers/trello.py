@@ -28,7 +28,6 @@ class trello():
             if self.dirty_cache
             else list(self._cached_cards.values())
         )
-
         for card in cards:
             card:dict
             try:

@@ -82,7 +82,7 @@ def test_get_user(caplog):
         assert entry.levelno < logging.ERROR
     assert isinstance(user, ZendeskUser)
 
-    assert user.name == "test fg"
+    assert user.name == "test test"
     assert user.email == "test@test.com"
     assert user.user_id == 417316391
     assert user.organisationID is None
@@ -208,3 +208,17 @@ def test_custom_fields():
     for field_id in ticket.custom_fields:
         isinstance(ticket.custom_fields[field_id], (bool, str))
     assert True
+
+
+
+def test_get_form_details():
+    "fetches a test form and checks that the returned name matches the expected value"
+
+    target_form_id =360001936712
+
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+
+    form = zend.get_form_d(target_form_id)
+
+    assert isinstance(form,dict)
+    assert isinstance(form["name"],str) 
