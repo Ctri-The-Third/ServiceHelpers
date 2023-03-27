@@ -29,6 +29,7 @@ class ZendeskTicket:
         self.comments = []
         self.logger = logging.getLogger("zendeskHelper.zendeskTicket")
         self.custom_fields = {}
+        self.ticket_form_id = 0
         pass
 
     def from_string(self, str):
@@ -73,6 +74,7 @@ class ZendeskTicket:
         self.group_id = source["group_id"] if "group_id" in source else self.group_id
         self.status = source["status"] if "status" in source else self.status
         self.priority = source["priority"] if "priority" in source else self.priority
+        self.ticket_form_id = source["ticket_form_id"] if "ticket_form_id" in source else self.ticket_form_id
         for custom_field in source["custom_fields"]:
             try:
                 if custom_field["value"] is not None:
@@ -92,5 +94,6 @@ class ZendeskTicket:
             "assignee_id": self.assignee_id,
             "requester_id": self.requester_id,
             "group_id": self.group_id,
+            "ticket_form_id" : self.ticket_form_id
         }
         return json.dumps(dict, sort_keys=True)
