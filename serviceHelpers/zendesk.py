@@ -154,3 +154,13 @@ class zendesk:
         org_o = ZendeskOrganisation(org_j)
 
         return org_o
+
+
+    def get_form_d(self, formID:int) -> dict:
+        "fetches from `/api/v2/ticket_forms/` and returns the response as a dict. "
+
+        url = f"https://{self.host}/api/v2/ticket_forms/{formID}"
+        form_j = self._request_and_validate(url)
+
+        return form_j["ticket_form"] if "ticket_form" in form_j else form_j
+        

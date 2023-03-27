@@ -115,6 +115,9 @@ def test_fetch_one(caplog:LogCaptureFixture) -> JiraTicket():
 
     jira_instance = test_jira_init()
     ticket = jira_instance.fetch_jira_ticket("GSDSE-1")
+    assert isinstance(ticket, JiraTicket)
+    assert ticket.key == "GSDSE-1"
+
     print(ticket)
 
 def test_fetch(caplog: LogCaptureFixture) -> JiraTicket:
