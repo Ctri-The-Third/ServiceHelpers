@@ -14,7 +14,7 @@ import os
 
 ### Initialise Slack Helper ###
 SLACK_WEBHOOK = os.environ.get("SLACK_WEBHOOK")
-SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
+SLACK_TOKEN = os.environ.get("SLACK_TOKEN_TEST")
 
 
 def test_environment_key():
@@ -143,6 +143,7 @@ def test_fetch_user_profile(caplog):
     good_profile_id = "U0214H4VCAX"
 
     profile = helper.fetch_user_profile(good_profile_id)
+
     assert isinstance(profile["email"], str)
     assert isinstance(profile["display_name_normalized"], str)
     assert isinstance(profile["email"], str)
