@@ -7,6 +7,7 @@ import html
 from googleapiclient.discovery import build 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials   
 import logging
 
 
@@ -16,19 +17,40 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 lo = logging.getLogger("GMailMapper")
 
 class Gmail():
-    def __init__(self, user_email,friendly_name) -> None:
+    """Class to handle GMail API interactions, including fetching of and threads.
+    
+    Args:
+        `user_email` (str): The email address of the user to fetch emails for
+        `friendly_name` (str): A friendly name for the user
+        `token` (google.oauth2.credentials.Credentials): A valid token object
+        `token_file_path` (str): The path to the token file to load. If not provided, the token object must be provided."""
+    def __init__(self, user_email,friendly_name, token:Credentials = None, token_file_path=None) -> None:
         logging.getLogger('googleapicliet.discovery_cache').setLevel(logging.WARNING)
-        self.token = self._getToken(friendly_name)
+        if token_file_path is not None:
+            self.token = load_token(token_file_path)
+        self.token = token
         self.friendly_name = friendly_name
         self.user_email = user_email
+        self.service = self.build_service()
         pass            
 
 
 
 
 
-    def list_threads_matching_query(self,service, user_id, query='label:UNREAD label:INBOX'):
+    def list_threads_matching_query(self, query='label:UNREAD label:INBOX'):
+
         
+        """List all Threads of the user's mailbox matching the query.  The query should be formatted the same as you would use in the GMail search box.  
+        For more info on query formatting see https://support.google.com/mail/answer/7190?hl=en
+        
+        Args:
+            `service` (googleapiclient.discovery.Resource): The gmail service object
+            `user_id` (str): The email address of the user to fetch emails for
+            `query` (str): The query to use to filter the emails. Defaults to 'label:UNREAD label:INBOX'
+            """
+        service = self.service
+        user_id = "me"
         try:
             response = service.users().threads().list(userId=user_id, q=query).execute()
             threads = []
@@ -45,38 +67,70 @@ class Gmail():
         except Exception as error:
             print ('An error occurred: %s' % error)
 
-    def _getToken(self,tokenName):
-        creds = None
-        # The file token.pickle stores the user's access and refresh tokens, and is
-        # created automatically when the authorization flow completes for the first
-        # time.
-        filename = "resources/GMailAuthTokens/%s.pickle" % (tokenName)
-        #print(os.getcwd()+filename)
-        if os.path.exists(filename):
-            with open(filename, 'rb') as token:
-                creds = pickle.load(token)
-        # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            lo.warning ("Needing authorisation for the %s inbox!" % (tokenName))
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                lo.warning ("Needing authorisation for the %s inbox!" % (tokenName))
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'resources/GMailCredentials.json', SCOPES)
-                creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open(filename, 'wb') as token:
-                pickle.dump(creds, token)
-        return creds
 
 
-    def fetch_gmail_items(self):
+    def build_service(self): 
+        """Builds the service object for the gmail API.  This is used to make calls to the API.
+        
+        Returns:
+            `googleapiclient.discovery.Resource`: The gmail service object"""
+        self.service = build('gmail', 'v1', credentials=self.token)
+        return self.service
+
+    def fetch_gmail_items(self, service=None):
         """
         Lists the user's emails that are in the inbox.
         """
-        service = build('gmail', 'v1', credentials=self.token)
+        service = self.service
         threads = self.list_threads_matching_query(service,"me")
         return threads
+    
+def load_token( file_path = None) -> Credentials:
+    "Gets valid user credentials from pickled storage."
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    #print(os.getcwd()+filename)
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as token:
+            creds = pickle.load(token)
+    else:
+        raise FileNotFoundError(f"No token file found at {file_path}")
+    
+    # If there are no (valid) credentials available flag the error so the user can re-auth
+    if not creds or not creds.valid:
+        lo.warning ("Saved token no longer valid - need to re-auth")
+        raise InvalidCredentialsException(f"Valid credentials could not be found at {file_path}")
+    return creds
+
+def make_new_token(client_secrets_file:str, redirect_url = "https://127.0.0.1/") -> Credentials:
+    "builds new token and dumps it to file, then returns"
+    
+    flow = InstalledAppFlow.from_client_secrets_file(
+                client_secrets_file, SCOPES, redirect_uri=redirect_url)
+    
+    creds = flow.run_local_server( open_browser=True, host="localhost",port=8080)
+    
+    return creds
+
+def save_token(token: Credentials, file_path:str):
+    "Saves the token to file"
+    with open(file_path, 'wb') as token_file:
+        pickle.dump(token, token_file)
 
 
+class InvalidCredentialsException(BaseException):
+    "Exception raised when credentials are invalid/ expired"
+
+
+if __name__ == "__main__":
+    f_name = "oauth_token.secret"
+    credentials_filename = "serviceHelpers-testing-desktop.json"
+    try:
+        token = load_token(f_name)
+    except (InvalidCredentialsException, FileNotFoundError) as err:
+        token = make_new_token(credentials_filename)
+        with open(f_name, "wb") as f:
+            pickle.dump(token, f)
+        
