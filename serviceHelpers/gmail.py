@@ -77,13 +77,6 @@ class Gmail():
         self.service = build('gmail', 'v1', credentials=self.token)
         return self.service
 
-    def fetch_gmail_items(self, service=None):
-        """
-        Lists the user's emails that are in the inbox.
-        """
-        service = self.service
-        threads = self.list_threads_matching_query(service,"me")
-        return threads
     
 def load_token( file_path = None) -> Credentials:
     "Gets valid user credentials from pickled storage."
@@ -95,6 +88,7 @@ def load_token( file_path = None) -> Credentials:
     if os.path.exists(file_path):
         with open(file_path, 'rb') as token:
             creds = pickle.load(token)
+            
     else:
         raise FileNotFoundError(f"No token file found at {file_path}")
     
@@ -113,6 +107,14 @@ def make_new_token(client_secrets_file:str, redirect_url = "https://127.0.0.1/")
     creds = flow.run_local_server( open_browser=True, host="localhost",port=8080)
     
     return creds
+
+def make_new_token_from_refresh_bits(refresh_token:str, client_id:str, client_secret:str, token_uri:str = "https://oauth2.googleapis.com/token") -> Credentials:
+    "builds new token and dumps it to file, then returns"
+
+    creds = Credentials("token",refresh_token, token_uri=token_uri, client_id=client_id, client_secret=client_secret)
+    creds.refresh(Request())
+    return creds
+
 
 def save_token(token: Credentials, file_path:str):
     "Saves the token to file"
