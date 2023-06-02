@@ -11,6 +11,11 @@ def save_secret_json_to_file():
     with open("gcloud_secrets.secret", "w") as f:
         f.write(TEST_GMAIL_SECRET_JSON)
  
+
+def test_env_vars():
+    assert TEST_REFRESH_TOKEN is not None
+    assert TEST_GMAIL_SECRET_JSON is not None   
+
 @pytest.mark.interactive    
 def test_make_new_token():
     token = make_new_token("gcloud_secrets.secret")
@@ -31,9 +36,6 @@ def test_load_token():
     assert token is not None
 
 
-def test_env_vars():
-    assert TEST_REFRESH_TOKEN is not None
-    assert TEST_GMAIL_SECRET_JSON is not None   
 
 def test_make_new_token_from_refresh_bits():
     secret = json.loads(TEST_GMAIL_SECRET_JSON)

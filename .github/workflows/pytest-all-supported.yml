@@ -11,8 +11,11 @@ env:
   JIRA_HOST_1: ${{secrets.JIRA_HOST_1}}
   JIRA_KEY_1: ${{secrets.JIRA_KEY_1}}
   SLACK_TOKEN: ${{secrets.SLACK_TOKEN}}
+  SLACK_TOKEN_TEST: ${{secrets.SLACK_TOKEN_TEST}}
   TRELLO_KEY: ${{secrets.TRELLO_KEY}}
   TRELLO_TOKEN: ${{secrets.TRELLO_TOKEN}}
+  GMAIL_REFRESH_TOKEN: ${{secrets.GMAIL_REFRESH_TOKEN_TEST}}
+  GMAIL_SECRET_JSON: ${{secrets.GMAIL_SECRET_JSON}}
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
