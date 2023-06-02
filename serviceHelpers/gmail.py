@@ -122,7 +122,21 @@ def save_token(token: Credentials, file_path:str):
         pickle.dump(token, token_file)
 
 
-class InvalidCredentialsException(BaseException):
+def extract_clientid_clientsecret_from_secretjson(secret_json:str) -> tuple:
+    """Extracts the client id and secret from the secret json file
+    
+    Args:
+        `secret_json` (str): The contents of the secret json file (as a string)
+
+    Returns:
+        `tuple(str,str)`: A tuple containing the client id and secret"
+
+    """
+ 
+    data = json.loads(secret_json)
+    return (data["installed"]["client_id"], data["installed"]["client_secret"])
+
+class InvalidCredentialsException(BaseException): 
     "Exception raised when credentials are invalid/ expired"
 
 
