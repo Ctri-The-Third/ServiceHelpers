@@ -48,6 +48,5 @@ jobs:
           pip install -r requirements.txt
       # Runs a set of commands using the runners shell
       - name: Test with pytest
-        run: pytest -vv
-
+        run: pytest -vv -m "not interactive"
       
