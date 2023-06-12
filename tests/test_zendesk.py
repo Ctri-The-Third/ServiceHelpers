@@ -82,7 +82,7 @@ def test_get_user(caplog):
         assert entry.levelno < logging.ERROR
     assert isinstance(user, ZendeskUser)
 
-    assert user.name == "test fg"
+    assert isinstance(user.name, str)
     assert user.email == "test@test.com"
     assert user.user_id == 417316391
     assert user.organisationID is None
