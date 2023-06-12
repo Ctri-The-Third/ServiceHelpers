@@ -27,6 +27,7 @@ class ZendeskTicket:
         self.requester = None
         self.group_id = 0
         self.comments = []
+        self.tags = []
         self.logger = logging.getLogger("zendeskHelper.zendeskTicket")
         self.custom_fields = {}
         self.ticket_form_id = 0
@@ -63,6 +64,7 @@ class ZendeskTicket:
             self.logger.error(
                 "Date found but not parsed properly : %s", source["updated_at"]
             )
+        self.tags = source["tags"] if "tags" in source else self.tags
         self.summary = source["subject"] if "subject" in source else self.summary
         self.desc = source["description"] if "description" in source else self.desc
         self.assignee_id = (

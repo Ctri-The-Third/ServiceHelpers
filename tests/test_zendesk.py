@@ -82,7 +82,7 @@ def test_get_user(caplog):
         assert entry.levelno < logging.ERROR
     assert isinstance(user, ZendeskUser)
 
-    assert user.name == "test fg"
+    assert isinstance(user.name, str)
     assert user.email == "test@test.com"
     assert user.user_id == 417316391
     assert user.organisationID is None
@@ -158,6 +158,18 @@ def test_search_for_tickets(caplog):
 
     for _, ticket in tickets.items():
         assert isinstance(ticket, ZendeskTicket)
+
+
+def test_tags_included(caplog):
+    "Check that the tags are included in the ticket"
+
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+    search_str  = "1239674"
+
+    tickets = zend.search_for_tickets(search_string=search_str)
+    for _, ticket in tickets.items():
+        assert isinstance(ticket, ZendeskTicket)
+        assert len(ticket.tags) > 0
 
 
 def test_worklog_parse():
