@@ -160,6 +160,18 @@ def test_search_for_tickets(caplog):
         assert isinstance(ticket, ZendeskTicket)
 
 
+def test_tags_included(caplog):
+    "Check that the tags are included in the ticket"
+
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+    search_str  = "1239674"
+
+    tickets = zend.search_for_tickets(search_string=search_str)
+    for _, ticket in tickets.items():
+        assert isinstance(ticket, ZendeskTicket)
+        assert len(ticket.tags) > 0
+
+
 def test_worklog_parse():
     "check that if missing fields aren't supplied, the worklog is not reported as valid"
     log = ZendeskWorklog()
