@@ -229,7 +229,7 @@ def test_get_form_id_in_ticket():
     ticket = tickets[1239674]
     ticket: ZendeskTicket
 
-    assert ticket.ticket_form_id is not 0 
+    assert ticket.ticket_form_id != 0 
 
 def test_get_form_details():
     "fetches a test form and checks that the returned name matches the expected value"
