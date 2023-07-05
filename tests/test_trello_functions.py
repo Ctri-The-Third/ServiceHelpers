@@ -107,18 +107,18 @@ def test_find_cards():
 
 def test_link_actions_to_cards():
     helper = trello("none", "none", "none")
-    cards = {"card1": {"id": "card1"}, "card2": {"id": "card2"}}
+    cards = [{"id": "card1"}, {"id": "card2"}]
     actions = [
         {"data": {"card": {"id": "card1"}}, "type": "updateCard"},
         {"id": "nothing", "type": "updateCard"},
     ]
 
-    expected_result = {
-        "card1": {
+    expected_result = [
+        {
             "id": "card1",
             "actions": [{"data": {}, "type": "updateCard"}],
         },
-        "card2": {"id": "card2", "actions": []},
-    }
+        {"id": "card2", "actions": []},
+    ]
     result = helper.link_actions_to_cards(cards, actions)
     assert result == expected_result

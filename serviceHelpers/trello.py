@@ -237,8 +237,8 @@ class trello:
         )
         return actions
 
-    def link_actions_to_cards(self, cards: dict, actions: list):
-        """takes a list of actions and a dict of cards, and links the actions to the cards. Uses the ["data"]["card"]["id"] field to link them.
+    def link_actions_to_cards(self, cards: list, actions: list):
+        """takes a list of actions and a list of cards, and links the actions to the cards. Uses the ["data"]["card"]["id"] field to link them.
         Discards actions that do not have a card id, or have a card id that is not in the cards dict.
 
 
@@ -260,19 +260,25 @@ class trello:
                 self.logger.warning("Could not find card in action: %s", action)
                 continue
             card_id = action["data"]["card"]["id"]
-            card = cards.get(card_id)
-            if card is None:
+            found_card = None
+            for card in cards:
+                if card["id"] == card_id:
+                    found_card = card
+                    break
+            if found_card is None:
                 self.logger.warning(
-                    "card with id %s not supplied, could not link actions", card_id
+                    "Could not find card with id [%s] in cards list - is it real?",
+                    card_id,
                 )
                 continue
             # prevents recurrsion
             action["data"].pop("card", None)
-            cards[card_id]["actions"].append(action)
+
+            found_card["actions"].append(action)
         return cards
 
     def _prepare_cards_for_actions(self, cards: dict) -> dict:
-        for _, card in cards.items():
+        for card in cards:
             if "actions" not in card:
                 card["actions"] = []
         return cards
