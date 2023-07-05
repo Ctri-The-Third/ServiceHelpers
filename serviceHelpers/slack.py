@@ -133,13 +133,54 @@ class slack:
 
         return parsed_json.get("profile", {})
 
+    def conversations_list(
+        self,
+        cursor: str = None,
+        exclude_archived: bool = None,
+        limit: int = None,
+        team_id: str = None,
+    ) -> list:
+        """Lists all channels in a Slack team. Based on the https://api.slack.com/methods/conversations.list call
+
+        args:
+            `cursor` - Paginate through collections of data by setting the cursor parameter to a next_cursor attribute returned by a previous request's response_metadata. Default value fetches the first "page" of the collection. See pagination for more detail.
+            `exclude_archived` - Set to true to exclude archived channels from the list
+            `limit` - The maximum number of items to return. Fewer than the requested number of items may be returned, even if the end of the list hasn't been reached.
+            `team_id` - encoded team id to list channels in, required if org token is used
+
+        returns:
+            `channels` - list of channels
+            `response_metadata` - metadata about the response
+        """
+        url = "https://slack.com/api/conversations.list"
+        headers = self._get_default_headers()
+        channels = []
+        parsed_json_pages = _request_and_validate_paginate(url, headers)
+        for page in parsed_json_pages:
+            channels.extend(page.get("channels", []))
+
+        return channels
+
+
+def _request_and_validate_paginate(url, headers, body=None, params=None) -> list:
+    incomplete = True
+    pages = []
+    params = params or {}
+    while incomplete:
+        page = _request_and_validate(url, headers, body, params)
+        pages.append(page)
+        next_cursor = page.get("response_metadata", {}).get("next_cursor", "")
+        incomplete = next_cursor != ""
+        params["cursor"] = next_cursor
+    return pages
+
 
 def _request_and_validate(url, headers, body=None, params=None) -> dict:
     "internal method to request and return results from Slack"
 
     try:
         result = requests.get(url=url, headers=headers, data=body, params=params)
-    except (ConnectionError) as e:
+    except ConnectionError as e:
         LO.error("Couldn't connect to Slack API %s - %s", url, e)
         return {}
     if result.status_code != 200:

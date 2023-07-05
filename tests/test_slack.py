@@ -164,3 +164,18 @@ def test_fetch_bad_user_id(caplog):
         _ = helper.fetch_user_profile(id)
     for record in caplog.records:
         assert record.levelno >= logging.WARNING
+
+
+def test_list_channels(caplog):
+    "Checks that we can list channels"
+    helper = slack(SLACK_TOKEN, SLACK_WEBHOOK)
+
+    channels = helper.conversations_list()
+    for channel in channels:
+        assert isinstance(channel, dict)
+        assert "id" in channel
+        assert "name" in channel
+        assert "topic" in channel
+    assert isinstance(channels, list)
+    for record in caplog.records:
+        assert record.levelno < logging.WARNING
