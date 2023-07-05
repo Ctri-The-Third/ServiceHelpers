@@ -29,6 +29,7 @@ class trello:
         self.token = token
         self._cached_cards = {}  # listID into list of cards, sorted by their IDs
         self.dirty_cache = True
+        self.logger = _LO
 
     def find_trello_card(self, regex) -> dict:
         "uses regexes to search name and description of cached / fetched cards, or exactly matching IDs. Returns the first it finds."
@@ -235,6 +236,46 @@ class trello:
             since=since,
         )
         return actions
+
+    def link_actions_to_cards(self, cards: dict, actions: list):
+        """takes a list of actions and a dict of cards, and links the actions to the cards. Uses the ["data"]["card"]["id"] field to link them.
+        Discards actions that do not have a card id, or have a card id that is not in the cards dict.
+
+
+        all cards will have an "actions" key, which is a list of actions that are linked to that card.
+        the action's "data" key will have the "card (the parent)" key removed, to prevent recurrsion.
+        """
+        cards = self._prepare_cards_for_actions(cards)
+
+        for action in actions:
+            if not isinstance(action, dict):
+                self.logger.error(
+                    "link_actions_to_cards: action is not a dict: %s", action
+                )
+                continue
+            if "data" not in action:
+                self.logger.warning("action has no data: %s", action)
+                continue
+            if "card" not in action["data"]:
+                self.logger.warning("Could not find card in action: %s", action)
+                continue
+            card_id = action["data"]["card"]["id"]
+            card = cards.get(card_id)
+            if card is None:
+                self.logger.warning(
+                    "card with id %s not supplied, could not link actions", card_id
+                )
+                continue
+            # prevents recurrsion
+            action["data"].pop("card", None)
+            cards[card_id]["actions"].append(action)
+        return cards
+
+    def _prepare_cards_for_actions(self, cards: dict) -> dict:
+        for _, card in cards.items():
+            if "actions" not in card:
+                card["actions"] = []
+        return cards
 
     def create_card(
         self,

@@ -103,3 +103,22 @@ def test_find_cards():
     found = helper.find_trello_cards("match")
     assert isinstance(found, list)
     assert len(found) == 2
+
+
+def test_link_actions_to_cards():
+    helper = trello("none", "none", "none")
+    cards = {"card1": {"id": "card1"}, "card2": {"id": "card2"}}
+    actions = [
+        {"data": {"card": {"id": "card1"}}, "type": "updateCard"},
+        {"id": "nothing", "type": "updateCard"},
+    ]
+
+    expected_result = {
+        "card1": {
+            "id": "card1",
+            "actions": [{"data": {}, "type": "updateCard"}],
+        },
+        "card2": {"id": "card2", "actions": []},
+    }
+    result = helper.link_actions_to_cards(cards, actions)
+    assert result == expected_result
