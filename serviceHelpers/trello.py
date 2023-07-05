@@ -557,7 +557,9 @@ class trello:
         pages = []
         if since is not None:
             params["since"] = since
-        while next_page is not None:
+        while next_page is not None and len(pages) < page_limit:
+            # we have a problem - if "since" is the most recent item, we'll get an empty list back
+            # therefore to continue we need to get the LAST item in the list, and use that as the "before" instead.
             r_url = f"{url}"
             try:
                 resp = self._request_and_validate(r_url, headers, params, body)
@@ -569,7 +571,7 @@ class trello:
             pages.append(resp)
 
             # this is probably going to break at some point
-            params["since"] = resp[0]["id"]
+            params["before"] = resp[-1]["id"]
             # check if `resp` is already in `pages``
 
         flattened_list = []

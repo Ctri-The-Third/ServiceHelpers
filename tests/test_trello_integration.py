@@ -75,7 +75,7 @@ def test_update_card():
 
 def test_fetch_all_actions():
     helper = trello(TEST_BOARD_ID, TRELLO_KEY, TRELLO_TOKEN)
-    actions = helper.fetch_actions_for_board()
+    actions = helper.fetch_actions_for_board(limit=500)
 
     assert isinstance(actions, list)
     assert len(actions) > 0
