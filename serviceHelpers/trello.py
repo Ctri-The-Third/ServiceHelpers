@@ -1,5 +1,5 @@
 import json
-
+import time
 from asyncio.log import logger
 import logging
 
@@ -488,7 +488,7 @@ class trello:
         self._cached_cards[card.get("id")] = card
         return True
 
-    def _request_and_validate(self, url, headers=None, params=None, body=None) -> dict:
+    def _request_and_validate(self, url, headers=None, params=None, body=None, retry=0) -> dict:
         """internal method to make a GET request and return the parsed json response (either a dict of cards, or a dict of actions, or whatever is returned)
 
         arguments:
@@ -526,6 +526,16 @@ class trello:
                 "Got an invalid response: %s - %s ", result.status_code, result.content
             )
             return {}
+        if result.status_code == 429:
+            _LO.warning("Rate limit, standing by for a moment")
+            if retry >= 5:
+                return {}
+
+            retry += 1
+            time.sleep (pow(retry,2)*1000)
+            self._request_and_validate(self, url, headers=None, params=None, body=None, retry=0)
+
+            # sleep for an increasing set of seconds
         try:
             parsed_content = json.loads(result.content)
             if "cards" in parsed_content:
