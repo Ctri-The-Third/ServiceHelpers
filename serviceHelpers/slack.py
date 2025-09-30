@@ -55,7 +55,7 @@ class slack:
         try:
             j_repsonse = json.loads(response)
         except requests.JSONDecodeError:
-            logging.warn(
+            logging.warning(
                 "Couldn't get a timestamp from the slack post - this means no replies are possible"
             )
             return returnstr
