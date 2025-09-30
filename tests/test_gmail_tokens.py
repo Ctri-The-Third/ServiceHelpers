@@ -2,6 +2,9 @@ import pytest
 from serviceHelpers.gmail import make_new_token,make_new_token_from_refresh_bits, load_token,   save_token,InvalidCredentialsException
 import os
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
  
 TEST_REFRESH_TOKEN = os.environ.get("GMAIL_REFRESH_TOKEN",None)

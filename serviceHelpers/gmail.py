@@ -142,11 +142,16 @@ class InvalidCredentialsException(BaseException):
 
 if __name__ == "__main__":
     f_name = "oauth_token.secret"
-    credentials_filename = "serviceHelpers-testing-desktop.json"
+    credentials_filename = "gcloud_secrets.secret"
     try:
         token = load_token(f_name)
     except (InvalidCredentialsException, FileNotFoundError) as err:
-        token = make_new_token(credentials_filename)
-        with open(f_name, "wb") as f:
+        with open(f_name, "wb+") as f:
+            token = make_new_token(credentials_filename)
             pickle.dump(token, f)
+    imp = input("enter Y if you'd like the refresh token outputted to console. \n Useful during first time setup.")
+    if imp.upper() == "Y":
+        print(token.refresh_token)
+    
+    
         

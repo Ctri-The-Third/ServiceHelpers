@@ -4,3 +4,5 @@ google-auth-oauthlib
 pytz
 six==1.15.0
 build
+wheel
+python-dotenv
