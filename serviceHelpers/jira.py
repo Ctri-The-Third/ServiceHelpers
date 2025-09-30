@@ -44,6 +44,7 @@ class Jira:
         jql = urllib.parse.quote(jql)
 
         url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
+        url = f"https://{self.host}/rest/api/3/search/jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
 
         retrieved_results = _request_and_validate(url, self.headers)
         incoming_tickets = {}
