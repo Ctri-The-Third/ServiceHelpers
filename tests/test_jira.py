@@ -13,6 +13,8 @@ from serviceHelpers.jira import Jira, TIMESTAMP_FORMAT, JiraDetails, JiraTicket
 
 import os
 
+pytestmark = pytest.mark.skip(reason="Jira tests disabled - Jira has depreciated its /2/ endpoints, module needs remade.")
+
 LO = logging.getLogger("jira_tests")
 
 

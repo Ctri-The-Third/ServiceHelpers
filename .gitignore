@@ -136,3 +136,7 @@ install.bat
 install2.bat
 setup.bat
 *.secret
+
+# informal notes during development
+devnotes/
+CLAUDE.md

@@ -2,5 +2,7 @@ requests
 google-api-python-client
 google-auth-oauthlib
 pytz
-six==1.15.0
+six
 build
+wheel
+python-dotenv

@@ -1,10 +1,17 @@
 import sys
+import pytest
+
+#pytestmark is a global variable
+pytestmark = pytest.mark.skip(reason="Freshdesk tests disabled")
 
 sys.path.append("")
 
 import os
 import logging
 from serviceHelpers.freshdesk import FreshDesk, FreshdeskTicket
+
+# 2025 - don't use Freshdesk at work anymore, can't test anymore.
+
 
 
 FRESHDESK_HOST = os.environ.get("FRESHDESK_HOST")

@@ -2,6 +2,9 @@
 import os
 
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()
 from serviceHelpers.gmail import make_new_token_from_refresh_bits, load_token, save_token 
 from serviceHelpers.gmail import extract_clientid_clientsecret_from_secretjson, InvalidCredentialsException, Gmail
 

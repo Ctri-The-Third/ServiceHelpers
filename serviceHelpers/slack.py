@@ -27,6 +27,8 @@ class slack:
 
         * `parent_ts` = a timestamp for an existing message in the channel. This will cause the message to sent to a thread.
         * `unfurl` = a boolean that controls whether or not URL previews should be shown.
+
+        returns: the timestamp of the posted message or None on failure
         """
         url = "https://slack.com/api/chat.postMessage"
         headers = self._get_default_headers()
@@ -72,7 +74,10 @@ class slack:
         return headers
 
     def postToSlackVia_webhook(self, webhook="", text=None) -> str:
-        "Uses a webhook to post a text message to slack."
+        """
+        DEPRECIATED - use post_to_slack_via_token
+        
+        """
         if webhook == "":
             webhook = self.webhook
         if webhook == "":
@@ -132,6 +137,72 @@ class slack:
             return {}
 
         return parsed_json.get("profile", {})
+
+    def update_message(self, channel, message_ts, new_text, attachment=None):
+        """Edit an existing message using the chat.update API call.
+
+        * `channel` = the channel ID containing the message to update
+        * `message_ts` = the timestamp of the message to update (returned from original post)
+        * `new_text` = the new text content for the message
+        * `attachment` = optional new attachments for the message
+        
+        Returns the timestamp of the updated message on success, empty string on failure.
+        """
+        url = "https://slack.com/api/chat.update"
+        headers = self._get_default_headers()
+        body = {
+            "channel": channel,
+            "ts": message_ts,
+            "text": new_text
+        }
+
+        if attachment is not None:
+            body["attachments"] = attachment
+
+        response = requests.post(url, data=json.dumps(body), headers=headers)
+        try:
+            r = json.loads(response.content)
+            if "error" in r:
+                logging.warning("Couldn't update slack message: %s", r["error"])
+                return ""
+            elif "ok" in r and r["ok"]:
+                logging.info("Successfully updated slack message")
+                return self._get_ts_from_post_response(response.text)
+        except Exception as e:
+            logging.warning("Couldn't update slack message: %s", e)
+        
+        return ""
+
+    def get_message_info(self, channel, message_ts):
+        """Retrieve information about a specific message using its timestamp.
+        
+        * `channel` = the channel ID containing the message
+        * `message_ts` = the timestamp of the message to retrieve
+        
+        Returns a dictionary with message information on success, empty dict on failure.
+        This can be useful to verify a message exists before attempting to edit it.
+        """
+        url = "https://slack.com/api/conversations.history" 
+        headers = self._get_default_headers()
+        params = {
+            "channel": channel,
+            "latest": message_ts,
+            "oldest": message_ts,
+            "inclusive": True,
+            "limit": 1
+        }
+
+        parsed_json = _request_and_validate(url, headers, params=params)
+        if parsed_json.get("ok") is not True:
+            logging.warning("Couldn't retrieve message info: %s", parsed_json.get("error", "unknown error"))
+            return {}
+        
+        messages = parsed_json.get("messages", [])
+        if len(messages) > 0 and messages[0].get("ts") == message_ts:
+            return messages[0]
+        
+        logging.warning("Message with timestamp %s not found in channel %s", message_ts, channel)
+        return {}
 
 
 def _request_and_validate(url, headers, body=None, params=None) -> dict:
