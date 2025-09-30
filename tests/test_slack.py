@@ -8,14 +8,18 @@ import logging
 from serviceHelpers.slack import slack
 from pytest import LogCaptureFixture
 import pytest
+from dotenv import load_dotenv
 
 import os
+
+load_dotenv()
 
 
 ### Initialise Slack Helper ###
 SLACK_WEBHOOK = os.environ.get("SLACK_WEBHOOK")
 SLACK_TOKEN = os.environ.get("SLACK_TOKEN_TEST")
-
+TEST_SLACK_CHANNEL_ID = os.environ.get("SLACK_TEST_CHANNEL_ID", "C0393FK01EE")
+SLACK_TEST_USER_ID = os.environ.get("SLACK_USERID_TEST")
 
 def test_environment_key():
     "Test whether or not the token is configured."
@@ -74,7 +78,7 @@ def test_post_to_slack_successful(caplog):
     ]
     text = "new ticket from testUser at testOrg\nURL: google.com\n\nTest Ticket"
 
-    helper.post_to_slack_via_token(text, "C0393FK01EE", attachment=att)
+    helper.post_to_slack_via_token(text, TEST_SLACK_CHANNEL_ID, attachment=att)
 
     errorMessageCounter = 0
 
@@ -130,17 +134,18 @@ def test_post_to_slack_no_attachment(caplog):
 
     text = "new ticket from testUser at testOrg\nURL: google.com\n\nTest Ticket"
 
-    helper.post_to_slack_via_token(text, "C0393FK01EE")
+    resp = helper.post_to_slack_via_token(text, TEST_SLACK_CHANNEL_ID)
 
     for record in caplog.records:
         assert record.levelno < logging.WARNING
 
 
+@pytest.mark.skip(reason="test token doesn't have proper permissions to test at the moent.")
 def test_fetch_user_profile(caplog):
     "Checks a user profile from the test server"
     helper = slack(SLACK_TOKEN, SLACK_WEBHOOK)
 
-    good_profile_id = "U0214H4VCAX"
+    good_profile_id = SLACK_TEST_USER_ID
 
     profile = helper.fetch_user_profile(good_profile_id)
 
@@ -164,3 +169,45 @@ def test_fetch_bad_user_id(caplog):
         _ = helper.fetch_user_profile(id)
     for record in caplog.records:
         assert record.levelno >= logging.WARNING
+
+
+
+
+def test_update_message_integration(caplog):
+    "Integration test for updating a message - requires a real message to edit"
+    helper = slack(SLACK_TOKEN, SLACK_WEBHOOK)
+
+    ts = helper.post_to_slack_via_token("TEST MESSAGE FOR EDITING - PLEASE IGNORE", TEST_SLACK_CHANNEL_ID)
+    assert ts 
+    response = helper.update_message(TEST_SLACK_CHANNEL_ID, ts, "UPDATED TEST MESSAGE ✅ - PLEASE IGNORE")
+    assert response  
+
+
+    
+    # This would require:
+    # 1. Posting a test message first
+    # 2. Getting its timestamp
+    # 3. Updating that message
+    # 4. Verifying the update worked
+    # 5. Cleaning up the test message
+    
+    # Example implementation (commented out for safety):
+    # original_text = "TEST MESSAGE - PLEASE IGNORE"
+    # updated_text = "UPDATED TEST MESSAGE - PLEASE IGNORE"
+    # test_channel = "C0393FK01EE"  # Replace with actual test channel
+    # 
+    # # Post original message
+    # message_ts = helper.post_to_slack_via_token(original_text, test_channel)
+    # assert message_ts != ""
+    # 
+    # # Update the message
+    # update_result = helper.update_message(test_channel, message_ts, updated_text)
+    # assert update_result != ""
+    # 
+    # # Verify the message was updated
+    # message_info = helper.get_message_info(test_channel, message_ts)
+    # assert message_info.get("text") == updated_text
+    
+    pass
+
+
