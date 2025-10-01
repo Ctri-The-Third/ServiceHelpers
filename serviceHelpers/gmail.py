@@ -113,17 +113,25 @@ def load_pickled_credentials( file_path = None) -> Credentials:
         lo.warning ("Saved token no longer valid - need to re-auth")
         raise InvalidCredentialsException(f"Valid credentials could not be found at {file_path}")
     return creds
-def make_new_credentials(client_secrets_file:str, redirect_url = "https://127.0.0.1/") -> Credentials:
-    flow = InstalledAppFlow.from_client_secrets_file(
-                client_secrets_file, SCOPES, redirect_uri=redirect_url)
+
+def make_new_credentials(client_secrets_str:str, redirect_uri = "https://127.0.0.1/") -> Credentials:
+    client_secrets = json.loads(client_secrets_str)
+
+    flow = InstalledAppFlow.from_client_config(client_secrets, SCOPES, redirect_uri=redirect_uri)
     
     creds = flow.run_local_server( open_browser=True, host="localhost",port=8080)
     return creds
 
 
-def make_new_token(client_secrets_file:str, redirect_url = "https://127.0.0.1/") -> Credentials:
+def make_new_token(client_secrets_file:str, redirect_uri = "https://127.0.0.1/") -> Credentials:
     "builds new token and dumps it to file, then returns"
-    return make_new_credentials(client_secrets_file, redirect_url)
+    try:
+        with open(client_secrets_file, "r", encoding="UTF-8") as f:
+            client_secrets_str = f.read()
+    except (FileNotFoundError) as err:
+        logging.warning(f"Unable to open  client secrts file {err}")
+        return None
+    return make_new_credentials(client_secrets_str, redirect_uri)
     
 def make_new_token_from_refresh_bits(refresh_token:str, client_id:str, client_secret:str, token_uri:str = "https://oauth2.googleapis.com/token") -> Credentials:
     "builds new token and dumps it to file, then returns"

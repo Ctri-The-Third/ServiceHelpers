@@ -1,5 +1,5 @@
 import pytest
-from serviceHelpers.gmail import make_new_token,make_new_token_from_refresh_bits, load_pickled_credentials,   save_token,InvalidCredentialsException
+from serviceHelpers.gmail import make_new_token,make_new_token_from_refresh_bits, load_pickled_credentials,   save_token,InvalidCredentialsException, make_new_credentials
 import os
 import json
 from dotenv import load_dotenv
@@ -25,6 +25,11 @@ def test_make_new_token():
     
     assert token is not None 
 
+@pytest.mark.interactive    
+def test_make_credentials_from_secret_json():
+    token = make_new_credentials(TEST_GMAIL_SECRET_JSON)
+    assert token is not None 
+    
 def test_save_token():
     token = test_make_new_token_from_refresh_bits()
     save_token(token, "oauth_token.secret")
