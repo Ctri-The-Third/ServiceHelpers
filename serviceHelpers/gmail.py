@@ -115,9 +115,12 @@ def load_pickled_credentials( file_path = None) -> Credentials:
     return creds
 
 def make_new_credentials(client_secrets_str:str, redirect_uri = "https://127.0.0.1/") -> Credentials:
-    client_secrets = json.loads(client_secrets_str)
+    if isinstance(client_secrets_str, str):
+        client_secrets_json = json.loads(client_secrets_str)
+    elif isinstance(client_secrets_str, dict):   
+        client_secrets_json = client_secrets_str
 
-    flow = InstalledAppFlow.from_client_config(client_secrets, SCOPES, redirect_uri=redirect_uri)
+    flow = InstalledAppFlow.from_client_config(client_secrets_json, SCOPES, redirect_uri=redirect_uri)
     
     creds = flow.run_local_server( open_browser=True, host="localhost",port=8080)
     return creds
@@ -135,8 +138,12 @@ def make_new_token(client_secrets_file:str, redirect_uri = "https://127.0.0.1/")
     
 def make_new_token_from_refresh_bits(refresh_token:str, client_id:str, client_secret:str, token_uri:str = "https://oauth2.googleapis.com/token") -> Credentials:
     "builds new token and dumps it to file, then returns"
+    if isinstance(client_secret, str):
+        client_secrets_json = json.loads(client_secret)
+    elif isinstance(client_secret, dict):   
+        client_secrets_json = client_secret
 
-    creds = Credentials("token",refresh_token, token_uri=token_uri, client_id=client_id, client_secret=client_secret)
+    creds = Credentials("token",refresh_token, token_uri=token_uri, client_id=client_id, client_secret=client_secrets_json)
     creds.refresh(Request())
     return creds
 
