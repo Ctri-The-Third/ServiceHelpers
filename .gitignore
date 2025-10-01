@@ -140,3 +140,5 @@ setup.bat
 # informal notes during development
 devnotes/
 CLAUDE.md
+update_version.py
+release.ps1

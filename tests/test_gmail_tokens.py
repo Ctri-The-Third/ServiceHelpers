@@ -1,5 +1,5 @@
 import pytest
-from serviceHelpers.gmail import make_new_token,make_new_token_from_refresh_bits, load_token,   save_token,InvalidCredentialsException
+from serviceHelpers.gmail import make_new_token,make_new_token_from_refresh_bits, load_pickled_credentials,   save_token,InvalidCredentialsException
 import os
 import json
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ def test_save_token():
 def test_load_token():
     save_secret_json_to_file()
     try:
-        token = load_token("oauth_token.secret")
+        token = load_pickled_credentials("oauth_token.secret")
     except (InvalidCredentialsException, FileNotFoundError) as err:
         assert False
     assert token is not None

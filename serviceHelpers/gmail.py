@@ -18,17 +18,31 @@ lo = logging.getLogger("GMailMapper")
 
 class Gmail():
     """Class to handle GMail API interactions, including fetching of and threads.
-    
+
     Args:
         `user_email` (str): The email address of the user to fetch emails for
         `friendly_name` (str): A friendly name for the user
         `token` (google.oauth2.credentials.Credentials): A valid token object
-        `token_file_path` (str): The path to the token file to load. If not provided, the token object must be provided."""
-    def __init__(self, user_email,friendly_name, token:Credentials = None, token_file_path=None) -> None:
+        `token_file_path` (str): The path to the token file to load. If not provided, the token object must be provided.
+        `refresh_token` (str): OAuth2 refresh token to create credentials from
+        `client_id` (str): OAuth2 client ID (required if using refresh_token)
+        `client_secret` (str): OAuth2 client secret (required if using refresh_token)"""
+    def __init__(self, user_email, friendly_name, token:Credentials = None, token_file_path=None, refresh_token=None, client_id=None, client_secret=None) -> None:
         logging.getLogger('googleapicliet.discovery_cache').setLevel(logging.WARNING)
-        if token_file_path is not None:
-            self.token = load_token(token_file_path)
-        self.token = token
+
+        # Handle different authentication methods in order of priority
+        if token is not None:
+            # Use provided credentials object directly
+            self.credentials = token
+        elif token_file_path is not None:
+            # Load credentials from file
+            self.credentials = load_token(token_file_path)
+        elif refresh_token is not None and client_id is not None and client_secret is not None:
+            # Create credentials from refresh token
+            self.credentials = make_new_token_from_refresh_bits(refresh_token, client_id, client_secret)
+        else:
+            raise ValueError("Must provide either 'token', 'token_file_path', or 'refresh_token' with 'client_id' and 'client_secret'")
+
         self.friendly_name = friendly_name
         self.user_email = user_email
         self.service = self.build_service()
@@ -74,11 +88,13 @@ class Gmail():
         
         Returns:
             `googleapiclient.discovery.Resource`: The gmail service object"""
-        self.service = build('gmail', 'v1', credentials=self.token)
+        self.service = build('gmail', 'v1', credentials=self.credentials)
         return self.service
 
-    
 def load_token( file_path = None) -> Credentials:
+    load_pickled_credentials(file_path)
+    
+def load_pickled_credentials( file_path = None) -> Credentials:
     "Gets valid user credentials from pickled storage."
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
@@ -97,17 +113,18 @@ def load_token( file_path = None) -> Credentials:
         lo.warning ("Saved token no longer valid - need to re-auth")
         raise InvalidCredentialsException(f"Valid credentials could not be found at {file_path}")
     return creds
-
-def make_new_token(client_secrets_file:str, redirect_url = "https://127.0.0.1/") -> Credentials:
-    "builds new token and dumps it to file, then returns"
-    
+def make_new_credentials(client_secrets_file:str, redirect_url = "https://127.0.0.1/") -> Credentials:
     flow = InstalledAppFlow.from_client_secrets_file(
                 client_secrets_file, SCOPES, redirect_uri=redirect_url)
     
     creds = flow.run_local_server( open_browser=True, host="localhost",port=8080)
-    
     return creds
 
+
+def make_new_token(client_secrets_file:str, redirect_url = "https://127.0.0.1/") -> Credentials:
+    "builds new token and dumps it to file, then returns"
+    return make_new_credentials(client_secrets_file, redirect_url)
+    
 def make_new_token_from_refresh_bits(refresh_token:str, client_id:str, client_secret:str, token_uri:str = "https://oauth2.googleapis.com/token") -> Credentials:
     "builds new token and dumps it to file, then returns"
 
@@ -144,7 +161,7 @@ if __name__ == "__main__":
     f_name = "oauth_token.secret"
     credentials_filename = "gcloud_secrets.secret"
     try:
-        token = load_token(f_name)
+        token = load_pickled_credentials(f_name)
     except (InvalidCredentialsException, FileNotFoundError) as err:
         with open(f_name, "wb+") as f:
             token = make_new_token(credentials_filename)
