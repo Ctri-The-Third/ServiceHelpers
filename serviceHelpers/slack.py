@@ -67,7 +67,7 @@ class slack:
 
     def _get_default_headers(self):
         headers = {
-            "Content-type": "application/json",
+            "Content-type": "application/json; charset=utf-8",
             "Authorization": "Bearer {}".format(self.token),
         }
 
