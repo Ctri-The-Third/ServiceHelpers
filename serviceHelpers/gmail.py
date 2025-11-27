@@ -131,7 +131,7 @@ def make_new_token(client_secrets_file:str, redirect_uri = "https://127.0.0.1/")
     try:
         with open(client_secrets_file, "r", encoding="UTF-8") as f:
             client_secrets_str = f.read()
-    except (FileNotFoundError) as err:
+    except (FileNotFoundError) as err: 
         logging.warning(f"Unable to open  client secrts file {err}")
         return None
     return make_new_credentials(client_secrets_str, redirect_uri)
@@ -139,11 +139,11 @@ def make_new_token(client_secrets_file:str, redirect_uri = "https://127.0.0.1/")
 def make_new_token_from_refresh_bits(refresh_token:str, client_id:str, client_secret:str, token_uri:str = "https://oauth2.googleapis.com/token") -> Credentials:
     "builds new token and dumps it to file, then returns"
     if isinstance(client_secret, str):
-        client_secrets_json = json.loads(client_secret)
+        client_secrets_str = client_secret
     elif isinstance(client_secret, dict):   
-        client_secrets_json = client_secret
+        client_secrets_str = json.dumps(client_secret)
 
-    creds = Credentials("token",refresh_token, token_uri=token_uri, client_id=client_id, client_secret=client_secrets_json)
+    creds = Credentials("token",refresh_token, token_uri=token_uri, client_id=client_id, client_secret=client_secrets_str)
     creds.refresh(Request())
     return creds
 

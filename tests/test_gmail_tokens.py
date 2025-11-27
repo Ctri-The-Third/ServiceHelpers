@@ -48,7 +48,7 @@ def test_load_token():
 def test_make_new_token_from_refresh_bits():
     secret = json.loads(TEST_GMAIL_SECRET_JSON)
     client_id = secret["installed"]["client_id"]
-    client_secret = secret["installed"]["client_secret"]
+    client_secret = secret
     token = make_new_token_from_refresh_bits(TEST_REFRESH_TOKEN, client_id, client_secret)
     assert token is not None
     assert token.valid is True

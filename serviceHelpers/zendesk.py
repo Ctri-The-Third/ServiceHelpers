@@ -111,11 +111,36 @@ class zendesk:
                     logs.append(worklog)
 
         return logs
+    
+    def update_ticket(self, ticket_id:int, body:dict):
+        """Updates a ticket with the given body dict. Provide a key-value pair for each field to update."""
+        url = f"https://{self.host}/api/v2/tickets/{ticket_id}"
+        
+
+        body_json = json.dumps({
+            "ticket": body
+        })
+
+        response = self._request_and_validate(url, body=body_json)
+
+        return response
+    def assign_ticket(self, ticket_id:int, user_id:int):
+        """Assigns a ticket to a user"""
+        
+        body = { "assignee_id": user_id }
+        return self.update_ticket(ticket_id, body)
+
+        
 
     def _request_and_validate(self, url, headers=None, body=None) -> dict:
         "internal method to request and return"
         if headers is None:
             headers = self._headers
+
+        if body is not None and  isinstance(body, dict):
+            body = json.dumps(body)
+            
+
 
         try:
             result = requests.get(url=url, headers=headers, data=body)
