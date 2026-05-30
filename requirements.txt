@@ -6,3 +6,4 @@ six
 build
 wheel
 python-dotenv
+pytest
