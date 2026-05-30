@@ -66,7 +66,7 @@ class trello:
 
         cards = self._get_and_validate(url, params=params)
         if cards:
-            self._populate_cache(cards.content.get("results",[]))
+            self._populate_cache(cards.content)
             self.dirty_cache = False
         return cards
 
@@ -110,7 +110,7 @@ class trello:
         "uses regexes to search name and description of cached / fetched cards. Returns all cards found."
 
         cards = (
-            self.fetch_trello_cards()
+            self.fetch_trello_cards().content
             if self.dirty_cache
             else list(self._cached_cards.values())
         )
@@ -406,9 +406,8 @@ class trello:
         url = f"{BASE_URL}boards/{board_id}/labels"
         params = self._get_trello_params()
         r = self._get_and_validate(url, params=params)
-        labels = {} 
-        items = r.content.get("results", {})
-        for item in items:
+        labels = {}
+        for item in r.content:
             labels[item.get("id")] = item
         r.content = labels
         return r 
@@ -422,9 +421,8 @@ class trello:
         url = f"{BASE_URL}boards/{board_id}/lists"
         params = self._get_trello_params()
         r = self._get_and_validate(url,params=params)
-        parsed_response = r.content
         self._cached_lists = {}
-        for item in parsed_response.get("results", []):
+        for item in r.content:
             if "id" not in item: 
                 continue 
             self._cached_lists[item.get("id")] = item 

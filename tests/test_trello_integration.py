@@ -17,7 +17,7 @@ def test_trello_get_cards():
     cards = helper.fetch_trello_cards()
     assert isinstance(cards,ResponseBlock)
     
-    for  card in cards.content.get("results",[]):
+    for card in cards.content:
         assert "id" in card
 
     assert len(cards.content) == len(helper._cached_cards)
