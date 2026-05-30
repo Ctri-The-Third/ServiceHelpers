@@ -116,7 +116,7 @@ def test_actions_since():
 def test_list_fetching_and_getting():
     helper = trello(TEST_BOARD_ID, TRELLO_KEY, TRELLO_TOKEN)
 
-    lists = helper.fetch_lists()
+    lists = helper.fetch_lists().content
     assert isinstance(lists, dict)
     assert len(lists) > 0
     for list_id, list_inst in lists.items():
