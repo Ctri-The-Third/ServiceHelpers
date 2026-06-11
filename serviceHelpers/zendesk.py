@@ -46,16 +46,21 @@ class zendesk:
                 "Unknown error when getting comments for ticket %s, %s", ticket_id, err)
         return []
 
-    def search_for_tickets(self, search_string):
+    def search_for_tickets(self, search_string, side_loads: list = None):
         """uses the zendesk search notation that's detailed here:
         https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/
         """
         # gets the most recently 100 Zendesk tickets.
         url = (
-            f"https://{self.host}/api/v2/search.json?query=type:ticket {search_string}"
+            f"https://{self.host}/api/v2/search.json"
         )
+        params = {"query": f"type:ticket {search_string}"
+                  }
+        if side_loads:
+            params["include"] = "tickets(" + ",".join(side_loads) + ")"
 
-        pages = self._request_and_validate_paginated(url)
+        pages = self._request_and_validate_paginated(url, params=params)
+
         tickets = {}
         for page in pages:
             for ticket_j in page.get("results", []):
@@ -135,30 +140,30 @@ class zendesk:
         body = {"assignee_id": user_id}
         return self.update_ticket(ticket_id, body)
 
-    def _request_and_validate(self, url, headers=None, body=None) -> ResponseBlock:
+    def _request_and_validate(self, url, headers=None, body=None, params=None) -> ResponseBlock:
         "internal method to request and return"
         if headers is None:
             headers = self._headers
 
         if body is not None and isinstance(body, dict):
             body = json.dumps(body)
-        return _get_and_validate(url, headers, None, body)
+        return _get_and_validate(url, headers, params, body)
 
-    def _post_and_validate(self, url, headers=None, body=None) -> ResponseBlock:
+    def _post_and_validate(self, url, headers=None, body=None, params=None) -> ResponseBlock:
         if headers is None:
             headers = self._headers
         if body is not None and isinstance(body, dict):
             body = json.dumps(body)
-        return self._post_and_validate(url, headers, body)
+        return _post_and_validate(url, headers, params, body)
 
-    def _request_and_validate_paginated(self, url, headers=None, body=None) -> list:
+    def _request_and_validate_paginated(self, url, headers=None, body=None, params=None) -> list:
 
         param_char = "&" if "?" in url else "?"
         next_page = 1
         pages = []
         while next_page is not None:
             r_url = f"{url}{param_char}page={next_page}"
-            resp = self._request_and_validate(r_url, headers, body)
+            resp = self._request_and_validate(r_url, headers, body, params)
             if resp:
 
                 pages.append(resp.content)

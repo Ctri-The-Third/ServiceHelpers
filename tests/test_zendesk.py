@@ -160,6 +160,85 @@ def test_search_for_tickets(caplog):
         assert isinstance(ticket, ZendeskTicket)
 
 
+def test_search_with_slas_sideload(caplog):
+    "Searching with the slas sideload should populate ticket.sla_breach_at (None when no active SLA)"
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+
+    tickets = zend.search_for_tickets("1239674", side_loads=["slas"])
+    assert len(tickets) > 0
+
+    for entry in caplog.records:
+        assert entry.levelno < logging.ERROR
+
+    ticket = tickets[1239674]
+    ticket: ZendeskTicket
+    # 1239674 is closed, so it has no active SLA -> None. Either way the attribute
+    # must be a datetime or None, never a raw string.
+    assert ticket.sla_breach_at is None or isinstance(ticket.sla_breach_at, datetime)
+    assert ticket.sla_breach_at is None
+
+
+def test_sla_breach_parsed_from_active_policy_metric():
+    "An active policy_metric's breach_at should be parsed into sla_breach_at as a datetime"
+    ticket = ZendeskTicket("example.zendesk.com")
+    ticket.from_dict(
+        {
+            "id": 1,
+            "custom_fields": [],
+            "slas": {
+                "policy_metrics": [
+                    {
+                        "breach_at": "2026-06-13T15:40:54Z",
+                        "stage": "active",
+                        "metric": "next_reply_time",
+                    },
+                    {"breach_at": None, "stage": "achieved", "metric": "first_reply_time"},
+                ]
+            },
+        }
+    )
+    assert ticket.sla_breach_at == datetime(2026, 6, 13, 15, 40, 54)
+
+
+def test_sla_breach_picks_earliest_active():
+    "When several SLAs are active, the soonest breach_at wins"
+    ticket = ZendeskTicket("example.zendesk.com")
+    ticket.from_dict(
+        {
+            "id": 2,
+            "custom_fields": [],
+            "slas": {
+                "policy_metrics": [
+                    {"breach_at": "2026-06-13T15:40:54Z", "stage": "active", "metric": "a"},
+                    {"breach_at": "2026-06-11T09:00:00Z", "stage": "active", "metric": "b"},
+                ]
+            },
+        }
+    )
+    assert ticket.sla_breach_at == datetime(2026, 6, 11, 9, 0, 0)
+
+
+def test_sla_breach_none_when_no_active_or_no_sideload():
+    "No slas sideload, or only non-active metrics, yields None"
+    no_sideload = ZendeskTicket("example.zendesk.com")
+    no_sideload.from_dict({"id": 3, "custom_fields": []})
+    assert no_sideload.sla_breach_at is None
+
+    only_achieved = ZendeskTicket("example.zendesk.com")
+    only_achieved.from_dict(
+        {
+            "id": 4,
+            "custom_fields": [],
+            "slas": {
+                "policy_metrics": [
+                    {"breach_at": None, "stage": "achieved", "metric": "first_reply_time"}
+                ]
+            },
+        }
+    )
+    assert only_achieved.sla_breach_at is None
+
+
 def test_tags_included(caplog):
     "Check that the tags are included in the ticket"
 
