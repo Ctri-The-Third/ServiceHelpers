@@ -448,6 +448,70 @@ class trello:
         return self._cached_lists
 
 
+# -- INTERACTIVE PROMPTS
+
+
+    def _label_display(self, label: dict) -> str:
+        "A human readable label name, falling back to its colour for unnamed Trello labels."
+        name = (label.get("name") or "").strip()
+        if name:
+            return name
+        return f"({label.get('color', 'no colour')})"
+
+    def prompt_for_list(self, prompt: str, board_id: str = None) -> str:
+        """Show the board's lists and read a selection from stdin.
+
+        `prompt` is the question line shown to the user, letting callers tailor it
+        to their context. The user may enter the displayed index or paste a raw
+        list ID. Returns the chosen list ID, or "" if nothing valid was entered.
+        """
+        lists = list(self.get_lists(board_id).values())
+        if lists:
+            print("\nAvailable Trello lists:")
+            for index, item in enumerate(lists):
+                print(f"  [{index}] {item.get('name')} ({item.get('id')})")
+
+        answer = input(prompt).strip()
+        if not answer:
+            return ""
+
+        if answer.isdigit() and lists:
+            index = int(answer)
+            if 0 <= index < len(lists):
+                return lists[index].get("id")
+            _LO.error("Index %s is out of range.", index)
+            return ""
+
+        return answer
+
+    def prompt_for_labels(self, prompt: str, board_id: str = None) -> list:
+        """Show the board's labels and read a selection from stdin.
+
+        `prompt` is the question line shown to the user. The user enters one or more
+        indices separated by spaces. Returns the list of selected label dicts
+        (empty if nothing valid was entered).
+        """
+        labels = list(self.fetch_labels_on_board(board_id).content.values())
+        if not labels:
+            return []
+
+        print("  Available labels:")
+        for n, label in enumerate(labels, 1):
+            print(f"    [{n}] {self._label_display(label)}")
+
+        answer = input(prompt).strip()
+        if not answer:
+            return []
+
+        selected = []
+        for tok in answer.split():
+            try:
+                selected.append(labels[int(tok) - 1])
+            except (ValueError, IndexError):
+                continue
+        return selected
+
+
 # -- BOARDS
 
 
