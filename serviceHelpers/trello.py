@@ -127,7 +127,7 @@ class trello:
                 foundCards.append(card)
         return foundCards
 
-    def search_trello_cards(self, search_criteria, board_id=None) -> list:
+    def search_trello_cards(self, search_criteria, board_id=None) -> ResponseBlock:
         "uses the trello search criteria, can return archived cards"
         url = f"{BASE_URL}search"
         params = {}
@@ -442,7 +442,9 @@ class trello:
         board_id = board_id or self.board_id
 
         if len(self._cached_lists) == 0:
-            return self.fetch_lists()
+            fetched_lists = self.fetch_lists()
+            if fetched_lists:
+                self._cached_lists = fetched_lists.content
         return self._cached_lists
 
 
