@@ -83,7 +83,6 @@ class trello:
 
 # -- card searching
 
-
     def find_trello_card(self, regex) -> dict:
         "uses regexes to search name and description of cached / fetched cards, or exactly matching IDs. Returns the first it finds."
         cards = (
@@ -138,6 +137,8 @@ class trello:
         params["query"] = search_criteria
 
         r = self._get_and_validate(url, params=params)
+        if r and "cards" in r.content:
+            r.content = r.content["cards"]
         return r
 
 # -- card writing methods
@@ -216,7 +217,6 @@ class trello:
 
 # -- card removal
 
-
     def archive_trello_card(self, trelloCardID):
         "archives an exisiting trello card"
         url = f"{BASE_URL}card/%s" % (trelloCardID)
@@ -246,9 +246,12 @@ class trello:
         """
         target_lists = [] if target_lists is None else target_lists
         custom_field_ids = [] if custom_field_ids is None else custom_field_ids
-        cards = self.fetch_trello_cards() if self.dirty_cache else self._cached_cards
+        if self.dirty_cache:
+            self.fetch_trello_cards()
 
-        for card in cards:
+        cards = self._cached_cards
+
+        for _, card in cards.items():
             # search through all cards, attempt to DQ from list. If all checks pass and not DQd, delete
             continue_search = True
             if target_lists[0] != "*" and card["idList"] not in target_lists:
@@ -299,6 +302,7 @@ class trello:
 
 
 # -- CHECKLISTS
+
 
     def create_checklist_on_card(self, card_id, checklist_name="Todo items") -> str:
         "create a checklist on an existing card, returns the ID for use."
@@ -422,6 +426,7 @@ class trello:
 
 # -- LISTS
 
+
     def fetch_lists(self, board_id: str = None) -> ResponseBlock:
 
         board_id = board_id or self.board_id
@@ -449,7 +454,6 @@ class trello:
 
 
 # -- INTERACTIVE PROMPTS
-
 
     def _label_display(self, label: dict) -> str:
         "A human readable label name, falling back to its colour for unnamed Trello labels."
@@ -514,7 +518,6 @@ class trello:
 
 # -- BOARDS
 
-
     def fetch_actions_for_board(
         self,
         since: str = None,
@@ -557,7 +560,6 @@ class trello:
 
 # -- UTILITIES
 # -- positioning
-
 
     def convert_index_to_pos(self, list_id, position) -> float:
         "takes the index of a card, and finds a suitable position float value for it"

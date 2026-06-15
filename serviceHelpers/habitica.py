@@ -22,7 +22,8 @@ class Habitica():
             lo.error("Couldn't get habitica dailies - %s", r.error)
             return r
 
-        active_dailies = [daily for daily in r.content["data"] if daily["isDue"]]
+        active_dailies = [
+            daily for daily in r.content["data"] if daily["isDue"]]
         r.content = active_dailies
         return r
 
@@ -31,7 +32,8 @@ class Habitica():
         url = f"https://habitica.com/api/v3/tasks/{daily_id}/score/up"
         r = self._habitica_request_and_validate(url, requests.post)
         if not r:
-            lo.error("Unexpected error whilst completing a habitica task! \n%s", r.error)
+            lo.error(
+                "Unexpected error whilst completing a habitica task! \n%s", r.error)
         return r
 
     def reset_dailies(self) -> ResponseBlock:
@@ -41,6 +43,19 @@ class Habitica():
         if not r:
             lo.warning("Failed to request Habitica reset!!")
         return r
+
+    def fetch_habitica_tags(self):
+        "Gets all the user's tags: their names and their IDs"
+
+        url = "https://habitica.com/api/v3/tags"
+        r = self._habitica_request_and_validate(url, requests.get)
+        if not r:
+            lo.warning("Failed to fetch tags from Habitica: %s ", r.error)
+
+            return r.content
+        else:
+            r.content = r.content["data"]
+            return r
 
     def _get_habitica_headers(self):
         return {
