@@ -58,3 +58,11 @@ def test_complete_daily_bad_id(client):
 
 def test_fetch_dailies_and_complete_the_first(client):
     r = client.fetch_habitica_dailies()
+
+
+def test_fetch_tags(client):
+    r = client.fetch_habitica_tags()
+    assert r
+    for tag in r.content:
+        assert "id" in tag
+        assert "name" in tag
