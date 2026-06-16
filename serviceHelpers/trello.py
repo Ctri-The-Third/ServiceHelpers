@@ -219,9 +219,9 @@ class trello:
 
     def archive_trello_card(self, trelloCardID):
         "archives an exisiting trello card"
-        url = f"{BASE_URL}card/%s" % (trelloCardID)
+        url = f"{BASE_URL}cards/%s" % (trelloCardID)
         params = self._get_trello_params()
-        params["closed"] = True
+        params["closed"] = "true"
         r = requests.put(url, params=params, timeout=10)
         if r.status_code != 200:
             print(r)
