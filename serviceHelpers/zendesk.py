@@ -46,7 +46,7 @@ class zendesk:
                 "Unknown error when getting comments for ticket %s, %s", ticket_id, err)
         return []
 
-    def search_for_tickets(self, search_string, side_loads: list = None):
+    def search_for_tickets(self, search_string, side_loads: list = None, limit_pages=10):
         """uses the zendesk search notation that's detailed here:
         https://developer.zendesk.com/api-reference/ticketing/ticket-management/search/
         """
@@ -59,7 +59,8 @@ class zendesk:
         if side_loads:
             params["include"] = "tickets(" + ",".join(side_loads) + ")"
 
-        pages = self._request_and_validate_paginated(url, params=params)
+        pages = self._request_and_validate_paginated(
+            url, params=params, limit_pages=limit_pages)
 
         tickets = {}
         for page in pages:
@@ -156,18 +157,17 @@ class zendesk:
             body = json.dumps(body)
         return _post_and_validate(url, headers, params, body)
 
-    def _request_and_validate_paginated(self, url, headers=None, body=None, params=None) -> list:
+    def _request_and_validate_paginated(self, url, headers=None, body=None, params=None, limit_pages=10) -> list:
 
         param_char = "&" if "?" in url else "?"
-        next_page = 1
+        next_url = f"{url}{param_char}page=1"
         pages = []
-        while next_page is not None:
-            r_url = f"{url}{param_char}page={next_page}"
-            resp = self._request_and_validate(r_url, headers, body, params)
+        while next_url is not None and len(pages) < limit_pages:
+            resp = self._request_and_validate(next_url, headers, body, params)
             if resp:
 
                 pages.append(resp.content)
-            next_page = resp.content.get("nextPage", None)
+            next_url = resp.content.get("next_page", None)
         return pages
 
     def get_organisation(self, orgID: int) -> ZendeskOrganisation:
