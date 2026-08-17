@@ -66,6 +66,41 @@ def test_convert_index_to_pos():
     assert pos < 209.30955
 
 
+def test_trello_sort_dict_with_null_pos():
+    helper = trello("none", "none", "none")
+    cards = {
+        "id_1": {"id": "id_1", "pos": 300},
+        "id_2": {"id": "id_2", "pos": None},
+        "id_3": {"id": "id_3", "pos": 20.4},
+        "id_4": {"id": "id_4"},
+    }
+    sorted_cards = helper._sort_trello_cards_dict(cards)
+
+    assert len(sorted_cards) == len(cards)
+
+    last_pos = -1
+    for _, card in sorted_cards.items():
+        pos = card.get("pos")
+        pos = 0 if pos is None else pos
+        assert pos >= last_pos
+        last_pos = pos
+
+
+def test_convert_index_to_pos_with_null_pos():
+    helper = trello("none", "none", "none")
+    helper._cached_cards = {
+        "id_1": {"id": "id_1", "idList": "main", "pos": 300},
+        "id_2": {"id": "id_2", "idList": "main", "pos": None},
+        "id_3": {"id": "id_3", "idList": "main", "pos": 20.4},
+    }
+    helper.dirty_cache = False
+
+    pos = helper.convert_index_to_pos("main", 0)
+
+    assert isinstance(pos, (int, float))
+    assert pos >= 0
+
+
 def test_keys_present():
     assert "TRELLO_KEY" in os.environ
     assert "TRELLO_TOKEN" in os.environ

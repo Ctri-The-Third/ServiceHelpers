@@ -10,7 +10,7 @@ packages = setuptools.find_packages()
 
 setup(
     name="hex-helpers",
-    version="4.1.0",
+    version="4.1.1",
     description="A series of light helpers for `freshdesk`,`gmail`,`habitica`,`hue lights`,`jira`,`slack`,`trello`",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -22,7 +22,6 @@ setup(
     package_dir={"models": r"models"},
     packages=packages,
     include_package_data=True,
-    install_requires=["requests", "google-api-python-client", "google-auth-oauthlib"],
+    install_requires=["requests",
+                      "google-api-python-client", "google-auth-oauthlib"],
 )
-
-print("complete")

@@ -83,6 +83,7 @@ class trello:
 
 # -- card searching
 
+
     def find_trello_card(self, regex) -> dict:
         "uses regexes to search name and description of cached / fetched cards, or exactly matching IDs. Returns the first it finds."
         cards = (
@@ -217,6 +218,7 @@ class trello:
 
 # -- card removal
 
+
     def archive_trello_card(self, trelloCardID):
         "archives an exisiting trello card"
         url = f"{BASE_URL}cards/%s" % (trelloCardID)
@@ -302,7 +304,6 @@ class trello:
 
 
 # -- CHECKLISTS
-
 
     def create_checklist_on_card(self, card_id, checklist_name="Todo items") -> str:
         "create a checklist on an existing card, returns the ID for use."
@@ -426,7 +427,6 @@ class trello:
 
 # -- LISTS
 
-
     def fetch_lists(self, board_id: str = None) -> ResponseBlock:
 
         board_id = board_id or self.board_id
@@ -454,6 +454,7 @@ class trello:
 
 
 # -- INTERACTIVE PROMPTS
+
 
     def _label_display(self, label: dict) -> str:
         "A human readable label name, falling back to its colour for unnamed Trello labels."
@@ -518,6 +519,7 @@ class trello:
 
 # -- BOARDS
 
+
     def fetch_actions_for_board(
         self,
         since: str = None,
@@ -561,20 +563,24 @@ class trello:
 # -- UTILITIES
 # -- positioning
 
+
     def convert_index_to_pos(self, list_id, position) -> float:
         "takes the index of a card, and finds a suitable position float value for it"
         cards = self.get_all_cards_on_list(list_id)
         cards = self._sort_trello_cards_dict(cards)
 
-        cards = list(cards.items())
+        cards = list(cards.values())
+        start_pos = cards[0].get("pos", 0) or 0
+        end_pos = cards[len(cards) - 1].get("pos", 0) or 0
+
         if len(cards) == 1:
-            return cards[0][1].get("pos", 0) + 1
+            return start_pos + 1
         if len(cards) == 0:
             return 0
         if position == 0:
-            return (cards[0][1].get("pos", 0)) / 2
+            return (start_pos) / 2
         if position == -1:
-            return cards[len(cards) - 1][1].get("pos", 0) + 0.0000001
+            return end_pos + 0.0000001
 
         try:
             card = cards[position]
@@ -595,14 +601,22 @@ class trello:
         return array_of_cards
 
     def _sort_trello_cards_dict(self, dict_of_cards: dict) -> dict:
+
+        def _card_pos(card: dict) -> float:
+            pos = card.get("pos")
+            return 0.0 if not pos else pos
+        # note for future C'tri reading this - we had to extract the ".get(pos)" out because it couldn't handle dicts without a pos key.
+
         sorted_dict = {
             k: v
-            for k, v in sorted(dict_of_cards.items(), key=lambda x: x[1].get("pos"))
+            for k, v in sorted(dict_of_cards.items(), key=lambda x: _card_pos(x[1]))
         }
         # note for future C'tri reading this - the part that does the sorting is this:
-        # key=lambda x:x[1].get("pos")
+        # key=lambda x: _card_pos(x[1]
         # in this case, x is a tuple comprised of K and V
         # x[1] is the card - a dict, and x[0] is the id, a string.
+        # we pass x[1] into _card_pos which either returns the value, or 0.0
+
         return sorted_dict
 
 # -- caching internals
