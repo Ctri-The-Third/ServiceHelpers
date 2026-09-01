@@ -2,14 +2,23 @@ import sys
 
 sys.path.append("")
 import os
-
+import dotenv
 from serviceHelpers.trello import trello, ResponseBlock
+
+dotenv.load_dotenv()
 
 TEST_BOARD_ID = "5f0dee6c5026590ce300472c"
 TEST_LIST_ID = "5f0dee6c5026590ce3004732"
 TEST_LIST_ID_TWO = "61d8367af7a2942f50afd468"
-TRELLO_KEY = os.environ.get("TRELLO_KEY")
-TRELLO_TOKEN = os.environ.get("TRELLO_TOKEN")
+TRELLO_KEY = os.environ.get("TRELLO_KEY", "")
+TRELLO_TOKEN = os.environ.get("TRELLO_TOKEN", "")
+
+
+
+def test_env_keys():
+    assert TRELLO_KEY is not ""
+    assert TRELLO_TOKEN is not ""
+    
 
 
 def test_trello_get_cards():

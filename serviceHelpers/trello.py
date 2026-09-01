@@ -191,8 +191,11 @@ class trello:
         pos: float = None,
         new_list_id: str = None,
         new_due_timestamp: str = None,
+        new_card_role:str = None 
     ):
-        "Update the card with a new title, description, position. use list_id to move to another list."
+        """Update the card with a new title, description, position. use list_id to move to another list.
+        
+        new_card_role should be either null, or one of `link` `separator` `mirror` and `board`"""
         url = f"{BASE_URL}cards/%s" % (card_id)
         params = self._get_trello_params()
         params["name"] = title
@@ -205,6 +208,9 @@ class trello:
             params["idList"] = new_list_id
         if new_due_timestamp is not None:
             params["due"] = new_due_timestamp
+        
+        params["cardRole"] = new_card_role
+
         r = self._put_and_validate(url, params=params)
         if not r:
             _LO.error(
@@ -213,6 +219,8 @@ class trello:
             return
         if not self._try_update_cache(r.content):
             self.dirty_cache = True
+
+
         return r
 
 
@@ -585,13 +593,17 @@ class trello:
         try:
             card = cards[position]
             prev_card = cards[position - 1]
-            pos = (prev_card[1]["pos"] + card[1]["pos"]) / 2
+            pos = (prev_card["pos"] + card["pos"]) / 2
             return pos
         except IndexError:
             _LO.error(
                 "got a horrible value when trying to convert index to pos value - index=[%s], len=[%s]"
             )
             return 0
+        except Exception as err:
+            _LO.error(
+                "got an unknown error when trying to convert index to post value - %s", err
+            )
 
     def _sort_trello_cards_list(self, array_of_cards: list) -> list:
         "Takes an arbitrary list of cards and sorts them by their position value if present"
