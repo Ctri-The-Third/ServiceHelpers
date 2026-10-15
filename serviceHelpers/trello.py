@@ -32,8 +32,8 @@ class trello:
         self._cached_lists = {}
         self.dirty_cache = True
 
-# -- CARDS
-# -- card reading, single then bulk
+    # -- CARDS
+    # -- card reading, single then bulk
 
     def fetch_trello_card(self, card_id: str) -> ResponseBlock:
         "returns a single trello card"
@@ -75,14 +75,11 @@ class trello:
         if self.dirty_cache:
             self.fetch_trello_cards()
         cards = self._cached_cards
-        filtered_cards = {k: v for k,
-                          v in cards.items() if v["idList"] == list_id}
+        filtered_cards = {k: v for k, v in cards.items() if v["idList"] == list_id}
         return filtered_cards
         # creates Key:value FOR - (for each Key, value in cards) BUT ONLY IF the list_id matches
 
-
-# -- card searching
-
+    # -- card searching
 
     def find_trello_card(self, regex) -> dict:
         "uses regexes to search name and description of cached / fetched cards, or exactly matching IDs. Returns the first it finds."
@@ -142,7 +139,7 @@ class trello:
             r.content = r.content["cards"]
         return r
 
-# -- card writing methods
+    # -- card writing methods
 
     def create_card(
         self,
@@ -154,7 +151,7 @@ class trello:
         position: int = None,
     ):
         """`position` is the numerical index of the card on the list it's appearing on. 0 = top, 1 = second, -1 = last
-        DueTimestamp """
+        DueTimestamp"""
 
         params = self._get_trello_params()
         params["name"] = title
@@ -191,11 +188,12 @@ class trello:
         pos: float = None,
         new_list_id: str = None,
         new_due_timestamp: str = None,
-        new_card_role:str = None 
+        new_card_role: str = None,
     ):
         """Update the card with a new title, description, position. use list_id to move to another list.
-        
-        new_card_role should be either null, or one of `link` `separator` `mirror` and `board`"""
+
+        new_card_role should be either null, or one of `link` `separator` `mirror` and `board`
+        """
         url = f"{BASE_URL}cards/%s" % (card_id)
         params = self._get_trello_params()
         params["name"] = title
@@ -208,24 +206,19 @@ class trello:
             params["idList"] = new_list_id
         if new_due_timestamp is not None:
             params["due"] = new_due_timestamp
-        
+
         params["cardRole"] = new_card_role
 
         r = self._put_and_validate(url, params=params)
         if not r:
-            _LO.error(
-                "ERROR: %s couldn't update the Gmail Trello card's name", r.error
-            )
+            _LO.error("ERROR: %s couldn't update the Gmail Trello card's name", r.error)
             return
         if not self._try_update_cache(r.content):
             self.dirty_cache = True
 
-
         return r
 
-
-# -- card removal
-
+    # -- card removal
 
     def archive_trello_card(self, trelloCardID):
         "archives an exisiting trello card"
@@ -310,8 +303,7 @@ class trello:
 
         return r
 
-
-# -- CHECKLISTS
+    # -- CHECKLISTS
 
     def create_checklist_on_card(self, card_id, checklist_name="Todo items") -> str:
         "create a checklist on an existing card, returns the ID for use."
@@ -320,17 +312,15 @@ class trello:
         params["idCard"] = card_id
         params["name"] = checklist_name
 
-        r = requests.post(url, params=params, timeout=10)
+        r = self._post_and_validate(url, params=params)
 
-        if r.status_code != 200:
-            print(
-                "ERROR: %s when attempting create a trello checklist (HabiticaMapper) \n%s"
-                % (r.status_code, r.content)
-            )
-            return
-        checklist = json.loads(r.content)
-        self.dirty_cache = True
-        return checklist["id"]
+        if r:
+            checklist = json.loads(r.content)
+            self.dirty_cache = True
+            return checklist["id"]
+        else:
+            _LO.error(r.error)
+            raise Exception(r.error)
 
     def add_item_to_checklist(self, checklistID: str, text: str):
         "add a single item to an existing checklist"
@@ -373,7 +363,7 @@ class trello:
         r = self._get_and_validate(url)
         return r
 
-# -- CUSTOM FIELDS
+    # -- CUSTOM FIELDS
 
     def create_custom_field(self, field_name) -> str:
         "creates a custom field on the board, returns the ID for use."
@@ -407,8 +397,7 @@ class trello:
         data = json.dumps({"value": {"text": "%s" % (value)}})
         params = self._get_trello_params()
         headers = {"Content-type": "application/json"}
-        r = requests.put(url=url, data=data, params=params,
-                         headers=headers, timeout=10)
+        r = requests.put(url=url, data=data, params=params, headers=headers, timeout=10)
         if r.status_code != 200:
             _LO.error(
                 "Unexpected response code [%s], whilst updating card  %s's field ID %s",
@@ -418,7 +407,8 @@ class trello:
             )
 
             print(r.content)
-# -- LABELS
+
+    # -- LABELS
 
     def fetch_labels_on_board(self, board_id: str = None):
         board_id = board_id or self.board_id
@@ -432,8 +422,7 @@ class trello:
         r.content = labels
         return r
 
-
-# -- LISTS
+    # -- LISTS
 
     def fetch_lists(self, board_id: str = None) -> ResponseBlock:
 
@@ -460,9 +449,7 @@ class trello:
                 self._cached_lists = fetched_lists.content
         return self._cached_lists
 
-
-# -- INTERACTIVE PROMPTS
-
+    # -- INTERACTIVE PROMPTS
 
     def _label_display(self, label: dict) -> str:
         "A human readable label name, falling back to its colour for unnamed Trello labels."
@@ -524,9 +511,7 @@ class trello:
                 continue
         return selected
 
-
-# -- BOARDS
-
+    # -- BOARDS
 
     def fetch_actions_for_board(
         self,
@@ -567,10 +552,8 @@ class trello:
         )
         return actions
 
-
-# -- UTILITIES
-# -- positioning
-
+    # -- UTILITIES
+    # -- positioning
 
     def convert_index_to_pos(self, list_id, position) -> float:
         "takes the index of a card, and finds a suitable position float value for it"
@@ -602,13 +585,13 @@ class trello:
             return 0
         except Exception as err:
             _LO.error(
-                "got an unknown error when trying to convert index to post value - %s", err
+                "got an unknown error when trying to convert index to post value - %s",
+                err,
             )
 
     def _sort_trello_cards_list(self, array_of_cards: list) -> list:
         "Takes an arbitrary list of cards and sorts them by their position value if present"
-        array_of_cards = sorted(
-            array_of_cards, key=lambda card: card.get("pos", 0))
+        array_of_cards = sorted(array_of_cards, key=lambda card: card.get("pos", 0))
 
         return array_of_cards
 
@@ -617,6 +600,7 @@ class trello:
         def _card_pos(card: dict) -> float:
             pos = card.get("pos")
             return 0.0 if not pos else pos
+
         # note for future C'tri reading this - we had to extract the ".get(pos)" out because it couldn't handle dicts without a pos key.
 
         sorted_dict = {
@@ -631,15 +615,14 @@ class trello:
 
         return sorted_dict
 
-# -- caching internals
+    # -- caching internals
 
     def _populate_cache(self, array_of_cards: list) -> None:
         "takes a list of cards and puts them into the _cached_cards dict"
         for card in array_of_cards:
             card: dict
             if "id" not in card:
-                _LO.warning(
-                    "skipped adding a card to the cache, no id present")
+                _LO.warning("skipped adding a card to the cache, no id present")
                 continue
 
             self._cached_cards[card.get("id")] = card
@@ -674,19 +657,63 @@ class trello:
         self._cached_cards[card.get("id")] = card
         return True
 
-    def _get_and_validate(self, url,  headers=None, params=None, body=None, retry=0, ) -> ResponseBlock:
-        return self._request_and_validate(url, requests.get, headers=headers, params=params, body=body, retry=0)
+    def _get_and_validate(
+        self,
+        url,
+        headers=None,
+        params=None,
+        body=None,
+        retry=0,
+    ) -> ResponseBlock:
+        return self._request_and_validate(
+            url, requests.get, headers=headers, params=params, body=body, retry=0
+        )
 
-    def _post_and_validate(self, url,  headers=None, params=None, body=None, retry=0, ) -> ResponseBlock:
-        return self._request_and_validate(url, requests.post, headers, params, body, retry)
+    def _post_and_validate(
+        self,
+        url,
+        headers=None,
+        params=None,
+        body=None,
+        retry=0,
+    ) -> ResponseBlock:
+        return self._request_and_validate(
+            url, requests.post, headers, params, body, retry
+        )
 
-    def _put_and_validate(self, url,  headers=None, params=None, body=None, retry=0, ) -> ResponseBlock:
-        return self._request_and_validate(url, requests.put, headers, params, body, retry)
+    def _put_and_validate(
+        self,
+        url,
+        headers=None,
+        params=None,
+        body=None,
+        retry=0,
+    ) -> ResponseBlock:
+        return self._request_and_validate(
+            url, requests.put, headers, params, body, retry
+        )
 
-    def _delete_and_validate(self, url,  headers=None, params=None, body=None, retry=0, ) -> ResponseBlock:
-        return self._request_and_validate(url, requests.delete, headers, params, body, retry)
+    def _delete_and_validate(
+        self,
+        url,
+        headers=None,
+        params=None,
+        body=None,
+        retry=0,
+    ) -> ResponseBlock:
+        return self._request_and_validate(
+            url, requests.delete, headers, params, body, retry
+        )
 
-    def _request_and_validate(self, url, method, headers=None, params=None, body=None, retry=0, ) -> ResponseBlock:
+    def _request_and_validate(
+        self,
+        url,
+        method,
+        headers=None,
+        params=None,
+        body=None,
+        retry=0,
+    ) -> ResponseBlock:
         """internal method to make a GET request and return the parsed json response (either a dict of cards, or a dict of actions, or whatever is returned)
 
         arguments:
@@ -731,8 +758,7 @@ class trello:
             try:
                 resp = self._get_and_validate(r_url, headers, params, body)
             except Exception as e:
-                _LO.error("Couldn't get page %s from %s- %s",
-                          next_page, url, e)
+                _LO.error("Couldn't get page %s from %s- %s", next_page, url, e)
                 break
             if resp.content in pages or len(resp.content) == 0:
                 break
