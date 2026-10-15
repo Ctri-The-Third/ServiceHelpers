@@ -315,9 +315,9 @@ class trello:
         r = self._post_and_validate(url, params=params)
 
         if r:
-            checklist = json.loads(r.content)
+            checklist = r.content
             self.dirty_cache = True
-            return checklist["id"]
+            return r
         else:
             _LO.error(r.error)
             raise Exception(r.error)
@@ -359,7 +359,7 @@ class trello:
 
     def fetch_checklist_content(self, checklist_id) -> list:
         "fetches the content of a checklist, returns a list of dicts"
-        url = f"{BASE_URL}checklists/%s" % (checklist_id)
+        url = f"{BASE_URL}checklists/{checklist_id}"
         r = self._get_and_validate(url)
         return r
 
