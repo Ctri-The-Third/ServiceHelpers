@@ -4,6 +4,7 @@ import json
 import requests
 import re
 import html
+from urllib.parse import parse_qs, urlparse
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -146,6 +147,35 @@ def make_new_credentials(
 
     creds = flow.run_local_server(open_browser=True, host="localhost", port=8080)
     return creds
+
+
+def make_new_credentials_by_paste(
+    client_secrets_str: str, redirect_uri="http://localhost:8080/"
+) -> Credentials:
+    """For hosts without a browser: prints the auth URL, then takes the URL the browser was
+    redirected to (which will fail to load) pasted back in, and swaps its code for credentials.
+    """
+    if isinstance(client_secrets_str, str):
+        client_secrets_json = json.loads(client_secrets_str)
+    elif isinstance(client_secrets_str, dict):
+        client_secrets_json = client_secrets_str
+
+    flow = InstalledAppFlow.from_client_config(
+        client_secrets_json, SCOPES, redirect_uri=redirect_uri
+    )
+
+    auth_url, _ = flow.authorization_url(access_type="offline", prompt="consent")
+    print(f"Open this URL on any device and approve access:\n{auth_url}\n")
+    print("The browser will then fail to load a localhost page - that's expected.")
+    pasted = input("Paste the full URL from the address bar: ").strip()
+
+    code = parse_qs(urlparse(pasted).query).get("code", [None])[0]
+    if not code:
+        lo.error("No authorisation code found in the pasted URL")
+        return None
+
+    flow.fetch_token(code=code)
+    return flow.credentials
 
 
 def make_new_token(
