@@ -1,6 +1,7 @@
 import logging
 from pytest import param
 
+
 class JiraDetails:
     """represents the settings for a jira object"""
 
@@ -9,7 +10,7 @@ class JiraDetails:
         self.name = ""
         self.key = ""
         self.default_assignee = ""
-
+        self.token_type = "Basic"
         self.logger = logging.getLogger("jiraDetails")
 
     def from_dict(self, src: dict):

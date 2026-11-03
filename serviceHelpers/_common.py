@@ -60,7 +60,9 @@ HIDDEN = "\033[8m"
 STRIKE = "\033[9m"
 
 
-def _request_and_validate(url, method, headers=None, params=None, body=None, retry=0) -> "ResponseBlock":
+def _request_and_validate(
+    url, method, headers=None, params=None, body=None, retry=0
+) -> "ResponseBlock":
     """Make an HTTP request and return a ResponseBlock.
 
     arguments:
@@ -75,14 +77,17 @@ def _request_and_validate(url, method, headers=None, params=None, body=None, ret
         ResponseBlock — check .okay/.error before using .content
     """
     try:
-        result = method(url=url, headers=headers, data=body,
-                        params=params, timeout=10)
+        result = method(url=url, headers=headers, data=body, params=params, timeout=10)
     except ConnectionError as e:
         response = ResponseBlock()
         response.error = f"Couldn't connect to {url} - {e}"
         _LO.error("Couldn't connect to %s - %s", url, e)
         return response
-
+    except requests.exceptions.TooManyRedirects as e:
+        response = ResponseBlock()
+        response.error = f"Too many redirects on {url} - {e}"
+        _LO.error("Stuck in a redirect loop: %s - %s", url, e)
+        return response
     if result.status_code == 429:
         _LO.warning("Rate limit, standing by for a moment")
         if retry >= 5:
@@ -108,28 +113,47 @@ def _request_and_validate(url, method, headers=None, params=None, body=None, ret
         return response
     if result.status_code != 200:
         response = ResponseBlock(result)
-        response.error = f"Unexpected response {result.status_code} from {url} - {result.content}"
-        _LO.error("Got an invalid response: %s - %s ",
-                  result.status_code, result.content)
+        response.error = (
+            f"Unexpected response {result.status_code} from {url} - {result.content}"
+        )
+        _LO.error(
+            "Got an invalid response: %s - %s ", result.status_code, result.content
+        )
         return response
 
     return ResponseBlock(result)
 
 
-def _get_and_validate(url, headers=None, params=None, body=None,   retry=0) -> "ResponseBlock":
-    return _request_and_validate(url, requests.get, headers=headers, params=params, body=body, retry=retry)
+def _get_and_validate(
+    url, headers=None, params=None, body=None, retry=0
+) -> "ResponseBlock":
+    return _request_and_validate(
+        url, requests.get, headers=headers, params=params, body=body, retry=retry
+    )
 
 
-def _post_and_validate(url, headers=None, params=None, body=None, retry=0) -> "ResponseBlock":
-    return _request_and_validate(url, requests.post, headers=headers, params=params, body=body, retry=retry)
+def _post_and_validate(
+    url, headers=None, params=None, body=None, retry=0
+) -> "ResponseBlock":
+    return _request_and_validate(
+        url, requests.post, headers=headers, params=params, body=body, retry=retry
+    )
 
 
-def _put_and_validate(url, headers=None, params=None, body=None, retry=0) -> "ResponseBlock":
-    return _request_and_validate(url, requests.put, headers=headers, params=params, body=body, retry=retry)
+def _put_and_validate(
+    url, headers=None, params=None, body=None, retry=0
+) -> "ResponseBlock":
+    return _request_and_validate(
+        url, requests.put, headers=headers, params=params, body=body, retry=retry
+    )
 
 
-def _delete_and_validate(url, headers=None, params=None, body=None, retry=0) -> "ResponseBlock":
-    return _request_and_validate(url, requests.delete, headers=headers, params=params, body=body, retry=retry)
+def _delete_and_validate(
+    url, headers=None, params=None, body=None, retry=0
+) -> "ResponseBlock":
+    return _request_and_validate(
+        url, requests.delete, headers=headers, params=params, body=body, retry=retry
+    )
 
 
 class ResponseBlock:
