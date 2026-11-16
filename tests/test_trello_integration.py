@@ -3,6 +3,7 @@ import sys
 sys.path.append("")
 import os
 import dotenv
+import pytest
 from serviceHelpers.trello import trello, ResponseBlock
 
 dotenv.load_dotenv()
@@ -188,3 +189,30 @@ def test_add_label_to_card():
     helper.delete_trello_card(card["id"])
     
 
+
+
+def test_create_checklist_on_card():
+    helper = trello(TEST_BOARD_ID, TRELLO_KEY, TRELLO_TOKEN)
+
+    r = helper.create_card(
+        "TEST CARD, PLEASE IGNORE",
+        TEST_LIST_ID,
+        "A temporary card that should get deleted",
+    )
+    assert r
+    card = r.content
+
+    try:
+        checklist_id = helper.create_checklist_on_card(card["id"], "Test checklist")
+        assert isinstance(checklist_id, str)
+        assert len(checklist_id) > 0
+        assert helper.dirty_cache
+    finally:
+        helper.delete_trello_card(card["id"])
+
+
+def test_create_checklist_on_missing_card_raises():
+    helper = trello(TEST_BOARD_ID, TRELLO_KEY, TRELLO_TOKEN)
+
+    with pytest.raises(Exception):
+        helper.create_checklist_on_card("000000000000000000000000")

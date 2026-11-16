@@ -13,7 +13,7 @@ from serviceHelpers.jira import Jira, TIMESTAMP_FORMAT, JiraDetails, JiraTicket
 
 import os
 
-pytestmark = pytest.mark.skip(reason="Jira tests disabled - Jira has depreciated its /2/ endpoints, module needs remade.")
+
 
 LO = logging.getLogger("jira_tests")
 
@@ -36,7 +36,6 @@ def get_details() -> JiraDetails:
     return deets
 
 
-@pytest.mark.skip("Not implemented yet")
 def test_details() -> JiraDetails:
     """Check that the jira details class loads things from the json file"""
     failures = 0
