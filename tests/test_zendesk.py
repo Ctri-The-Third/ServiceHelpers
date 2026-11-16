@@ -1,12 +1,3 @@
-import sys
-from datetime import datetime
-
-
-sys.path.append("")
-import os
-import json
-import logging
-import pytest
 from serviceHelpers.zendesk import (
     zendesk,
     ZendeskOrganisation,
@@ -14,6 +5,15 @@ from serviceHelpers.zendesk import (
     ZendeskWorklog,
     ZendeskTicket,
 )
+import pytest
+import logging
+import json
+import os
+import sys
+from datetime import datetime
+
+
+sys.path.append("")
 
 ZENDESK_HOST = os.environ.get("ZENDESK_HOST")
 ZENDESK_KEY = os.environ.get("ZENDESK_KEY")
@@ -103,16 +103,17 @@ def test_get_comments(caplog):
 
     zd = test_init(caplog)
 
-    comments = zd.get_comments(-1) 
+    comments = zd.get_comments(-1)
     assert len(comments) == 0
 
     comments = zd.get_comments(1120539)
-    assert len(comments) == 2 
+    assert len(comments) == 2
 
     tickets = zd.search_for_tickets("1120539")
-    for _,ticket in tickets.items():
+    for _, ticket in tickets.items():
         ticket = zd.get_comments(ticket=ticket)
-        len( ticket.comments ) == 2 
+        len(ticket.comments) == 2
+
 
 def test_user_init_and_invalid_handling(caplog):
     """verifies the error handling of a ZendeskUser object's initialisation"""
@@ -160,11 +161,95 @@ def test_search_for_tickets(caplog):
         assert isinstance(ticket, ZendeskTicket)
 
 
+def test_search_with_slas_sideload(caplog):
+    "Searching with the slas sideload should populate ticket.sla_breach_at (None when no active SLA)"
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+
+    tickets = zend.search_for_tickets("1239674", side_loads=["slas"])
+    assert len(tickets) > 0
+
+    for entry in caplog.records:
+        assert entry.levelno < logging.ERROR
+
+    ticket = tickets[1239674]
+    ticket: ZendeskTicket
+    # 1239674 is closed, so it has no active SLA -> None. Either way the attribute
+    # must be a datetime or None, never a raw string.
+    assert ticket.sla_breach_at is None or isinstance(
+        ticket.sla_breach_at, datetime)
+    assert ticket.sla_breach_at is None
+
+
+def test_sla_breach_parsed_from_active_policy_metric():
+    "An active policy_metric's breach_at should be parsed into sla_breach_at as a datetime"
+    ticket = ZendeskTicket("example.zendesk.com")
+    ticket.from_dict(
+        {
+            "id": 1,
+            "custom_fields": [],
+            "slas": {
+                "policy_metrics": [
+                    {
+                        "breach_at": "2026-06-13T15:40:54Z",
+                        "stage": "active",
+                        "metric": "next_reply_time",
+                    },
+                    {"breach_at": None, "stage": "achieved",
+                        "metric": "first_reply_time"},
+                ]
+            },
+        }
+    )
+    assert ticket.sla_breach_at == datetime(2026, 6, 13, 15, 40, 54)
+
+
+def test_sla_breach_picks_earliest_active():
+    "When several SLAs are active, the soonest breach_at wins"
+    ticket = ZendeskTicket("example.zendesk.com")
+    ticket.from_dict(
+        {
+            "id": 2,
+            "custom_fields": [],
+            "slas": {
+                "policy_metrics": [
+                    {"breach_at": "2026-06-13T15:40:54Z",
+                        "stage": "active", "metric": "a"},
+                    {"breach_at": "2026-06-11T09:00:00Z",
+                        "stage": "active", "metric": "b"},
+                ]
+            },
+        }
+    )
+    assert ticket.sla_breach_at == datetime(2026, 6, 11, 9, 0, 0)
+
+
+def test_sla_breach_none_when_no_active_or_no_sideload():
+    "No slas sideload, or only non-active metrics, yields None"
+    no_sideload = ZendeskTicket("example.zendesk.com")
+    no_sideload.from_dict({"id": 3, "custom_fields": []})
+    assert no_sideload.sla_breach_at is None
+
+    only_achieved = ZendeskTicket("example.zendesk.com")
+    only_achieved.from_dict(
+        {
+            "id": 4,
+            "custom_fields": [],
+            "slas": {
+                "policy_metrics": [
+                    {"breach_at": None, "stage": "achieved",
+                        "metric": "first_reply_time"}
+                ]
+            },
+        }
+    )
+    assert only_achieved.sla_breach_at is None
+
+
 def test_tags_included(caplog):
     "Check that the tags are included in the ticket"
 
     zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
-    search_str  = "1239674"
+    search_str = "1239674"
 
     tickets = zend.search_for_tickets(search_string=search_str)
     for _, ticket in tickets.items():
@@ -221,6 +306,7 @@ def test_custom_fields():
         isinstance(ticket.custom_fields[field_id], (bool, str))
     assert True
 
+
 def test_get_form_id_in_ticket():
     zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
     target_id = 1239674
@@ -229,16 +315,32 @@ def test_get_form_id_in_ticket():
     ticket = tickets[1239674]
     ticket: ZendeskTicket
 
-    assert ticket.ticket_form_id != 0 
+    assert ticket.ticket_form_id != 0
+
 
 def test_get_form_details():
     "fetches a test form and checks that the returned name matches the expected value"
 
-    target_form_id =360001936712
+    target_form_id = 360001936712
 
     zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
 
     form = zend.get_form_d(target_form_id)
 
-    assert isinstance(form,dict)
-    assert isinstance(form["name"],str) 
+    assert isinstance(form, dict)
+    assert isinstance(form["name"], str)
+
+
+def test_pagination(caplog):
+    zend = zendesk(ZENDESK_HOST, ZENDESK_KEY)
+
+    tickets = zend.search_for_tickets("created>2015-01-01", limit_pages=2)
+
+    for entry in caplog.records:
+        assert entry.levelno < logging.ERROR
+
+    assert len(tickets) > 100
+
+    for ticket_id, ticket in tickets.items():
+        assert isinstance(ticket, ZendeskTicket)
+        assert ticket.id == ticket_id

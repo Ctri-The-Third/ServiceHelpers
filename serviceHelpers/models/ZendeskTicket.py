@@ -31,6 +31,7 @@ class ZendeskTicket:
         self.logger = logging.getLogger("zendeskHelper.zendeskTicket")
         self.custom_fields = {}
         self.ticket_form_id = 0
+        self.sla_breach_at = None
         pass
 
     def from_string(self, str):
@@ -83,7 +84,24 @@ class ZendeskTicket:
                     self.custom_fields[custom_field["id"]] = custom_field["value"]
             except KeyError as err:
                 self.logger.warning("Couldn't properly get a custom field - %s", err)
+        self.sla_breach_at = self._earliest_active_sla_breach(source.get("slas"))
         return self
+
+    def _earliest_active_sla_breach(self, slas: dict):
+        """From an inline `slas` sideload (include=tickets(slas)), returns the soonest
+        active SLA breach time as a datetime, or None if there's no active SLA."""
+        if not isinstance(slas, dict):
+            return None
+        breaches = []
+        for metric in slas.get("policy_metrics", []):
+            if metric.get("stage") == "active" and metric.get("breach_at"):
+                try:
+                    breaches.append(datetime.strptime(metric["breach_at"], _ZD_FORMAT))
+                except (ValueError, TypeError):
+                    self.logger.error(
+                        "Couldn't parse SLA breach_at: %s", metric.get("breach_at")
+                    )
+        return min(breaches) if breaches else None
 
     def __str__(self) -> str:
         dict = {

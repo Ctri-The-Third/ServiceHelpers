@@ -7,6 +7,7 @@ import requests
 from serviceHelpers.models.JiraDetails import JiraDetails
 from serviceHelpers.models.JiraTicket import JiraTicket
 from serviceHelpers.models.JiraWorklog import JiraWorklog
+from serviceHelpers._common import ResponseBlock, _post_and_validate, _get_and_validate
 
 LO = logging.getLogger("jira")
 TIMESTAMP_FORMAT = r"%Y-%m-%dT%H:%M:%S.%f%z"
@@ -26,35 +27,49 @@ class Jira:
         self.token = config.key
         self.headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Basic {self.token}",
+            "Authorization": f"{config.token_type} {self.token}",
         }
         self.logger = LO
 
-    def fetch_jira_ticket(self, key:str) -> JiraTicket:
+    def fetch_jira_ticket(self, key: str) -> JiraTicket:
         "Takes a jira key or ID and gets the returned issue"
         url = f"https://{self.host}/rest/api/2/issue/{key}"
-        results = _request_and_validate(url,self.headers)
+        results = _get_and_validate(url, self.headers)
         ticket = JiraTicket().from_dict(results)
         return ticket
 
-
-    def fetch_jira_tickets(self, jql) -> dict:
+    def fetch_jira_tickets(self, jql, fields: list = []) -> dict:
         "takes a JQL string, encodes it, send its to Jira, and returns a dict of tickets, with the ticket ID (PRJ-123) as the dict key"
 
         jql = urllib.parse.quote(jql)
+        if len(fields) == 0:
+            fields = [
+                "key",
+                "summary",
+                "description",
+                "priority",
+                "assignee",
+                "created",
+                "updated",
+            ]
 
-        url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
-        url = f"https://{self.host}/rest/api/3/search/jql={jql}&fields=key,summary,description,status,priority,assignee,created,updated"
+        if "atlassian.net" in self.host:
+            url = f"https://{self.host}/rest/api/3/search/jql?jql={jql}&fields={','.join(fields)}"
+        else:
+            url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields={','.join(fields)}"
 
-        retrieved_results = _request_and_validate(url, self.headers)
-        incoming_tickets = {}
-        for ticket in retrieved_results["issues"]:
+        r = _get_and_validate(url, self.headers)
+        if not r:
+            self.logger.error("Couldn't fetch results because %s", r.err)
+        found_tickets = r.content.get("issues", [])
+        tickets_dict = {}
+        for ticket in found_tickets:
 
             new_ticket = JiraTicket().from_dict(ticket)
 
-            incoming_tickets[ticket["key"]] = new_ticket
+            tickets_dict[ticket["key"]] = new_ticket
             # print(json.dumps(ticket,indent=2))
-        return incoming_tickets
+        return tickets_dict
 
     def fetch_worklogs_for_jira_ticket(self, ticket_key: str) -> list:
         "takes a ticket key and returns the worklogs for it"
@@ -71,12 +86,12 @@ class Jira:
         return worklogs
 
 
-def _request_and_validate(url, headers, body=None) -> dict:
+def _request_and_validate_old(url, headers, body=None) -> dict:
     "internal method to request and return results from Jira"
 
     try:
         result = requests.get(url=url, headers=headers, data=body)
-    except (ConnectionError) as e:
+    except ConnectionError as e:
         LO.error("Couldn't connect to Jira %s - %s", url, e)
         return {}
     if result.status_code != 200:
