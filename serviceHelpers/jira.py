@@ -54,9 +54,9 @@ class Jira:
             ]
 
         if "atlassian.net" in self.host:
-            url = f"https://{self.host}/rest/api/3/search/jql?jql={jql}&fields={",".join(fields)}"
+            url = f"https://{self.host}/rest/api/3/search/jql?jql={jql}&fields={','.join(fields)}"
         else:
-            url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields={",".join(fields)}"
+            url = f"https://{self.host}/rest/api/2/search?jql={jql}&fields={','.join(fields)}"
 
         r = _get_and_validate(url, self.headers)
         if not r:
